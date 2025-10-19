@@ -5,10 +5,6 @@ project_root = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(project_root)
 
 from Modules.Basic_Event import Basic_Event
-from Modules.Asil_Block import ASIL_Block
-from Modules.Coverage_Block import Coverage_Block
-from Modules.Split_Block import Split_Block
-from Modules.Sum_Block import Sum_Block
 from SEC import SEC
 
 def demonstrate_connection(
@@ -35,11 +31,7 @@ def demonstrate_connection(
     
     sec = SEC("SEC",
             spfm_input_rates,
-            lfm_input_rates,
-            Coverage_Block, 
-            Split_Block, 
-            Sum_Block, 
-            Basic_Event)
+            lfm_input_rates)
     
     results = sec.computefit()
     print("--- Final FIT Results ---")  
