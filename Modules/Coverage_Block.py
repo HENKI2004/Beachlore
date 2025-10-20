@@ -7,7 +7,7 @@ class Coverage_Block:
     on the Diagnostic Coverage (DC) rate.
     """
 
-    def __init__(self, name: str, dc_rate: float):
+    def __init__(self, input: str, dc_rate: float):
         """
         Constructor for the CoverageBlock.
 
@@ -21,7 +21,7 @@ class Coverage_Block:
         if not (0.0 <= dc_rate <= 1.0):
             raise ValueError("Diagnostic Coverage rate (dc_rate) must be between 0.0 and 1.0.")
             
-        self.name = name
+        self.name = input
         self.dc_rate = dc_rate 
 
     def compute_fit(self, lambda_in: float) -> dict:

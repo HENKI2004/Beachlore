@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from enum import Enum, auto
 
 from .Basic_Event import Basic_Event
 from .Coverage_Block import Coverage_Block
@@ -7,10 +8,19 @@ from .Split_Block import Split_Block
 from .Sum_Block import Sum_Block
 from .Asil_Block import ASIL_Block
 
+class FAULTS(Enum):
+    SBE = auto()
+    DBE = auto()
+    TBE = auto()
+    MBE = auto()
+    WD = auto()
+    AZ = auto()
+    SB = auto()
+
 class Base(ABC):
     
     def __init__(self, name: str, spfm_input: dict, lfm_input : dict):
-        
+
         self.name = name
         self.spfm_input = spfm_input
         self.lfm_input = lfm_input
@@ -20,6 +30,7 @@ class Base(ABC):
         
         self.spfm_split_blocks = {}
         self.spfm_coverage_blocks = {}
+        self.spfm_sum_blocks = {}
         self.spfm_source_blocks = {}
         
         self.lfm_split_blocks = {}
@@ -30,6 +41,7 @@ class Base(ABC):
         self.CoverageBlock = Coverage_Block
         self.SplitBlock = Split_Block
         self.SumBlock = Sum_Block
+
         
         self.configure_blocks()
     

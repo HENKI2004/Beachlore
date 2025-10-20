@@ -5,7 +5,7 @@ class Basic_Event:
     This module is initialized with a constant failure rate (lambda_BE) in FIT.
     """
 
-    def __init__(self, name: str, rate: float):
+    def __init__(self, output: str, rate: float):
         """
         Constructor for the BasicEvent block.
 
@@ -14,7 +14,7 @@ class Basic_Event:
         @param name: The identifier for this specific fault source.
         @param rate: The internal fault's failure rate (lambda_BE) in FIT.
         """
-        self.name = name
+        self.output = output
         self.lambda_BE = rate  
 
     def get_output_rate(self) -> float:

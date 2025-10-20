@@ -7,7 +7,7 @@ class Split_Block:
     rate is categorized as Safe Faults (lambda_S).
     """
     
-    def __init__(self, name: str, distribution_rates: dict):
+    def __init__(self, input: str, distribution_rates: dict):
         """
         Constructor for the SplitBlock.
 
@@ -25,7 +25,7 @@ class Split_Block:
         if sum_of_rates > 1.0 + 1e-9: 
             raise ValueError(f"Sum of distribution rates ({sum_of_rates:.4f}) must not exceed 1.0.")
             
-        self.name = name
+        self.name = input
         self.distribution_rates = distribution_rates  
         self.sum_of_rates = sum_of_rates
 

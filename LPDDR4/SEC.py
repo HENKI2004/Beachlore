@@ -1,4 +1,4 @@
-from Modules.Base import Base
+from Modules.Base import Base,FAULTS
 
 class SEC(Base):
     """
@@ -20,16 +20,18 @@ class SEC(Base):
         Implements the abstract method to instantiate the blocks unique to SEC.
         """
         # --- LFM Source Blocks ---
-        self.lfm_source_blocks['SB'] = self.BasicEvent("SB", self.SB_SCOURCE)
-        self.lfm_source_blocks['DBE'] = self.BasicEvent("DBE", self.DBE_SCOURCE)
+        self.lfm_source_blocks[FAULTS.SB] = self.BasicEvent(FAULTS.SB, self.SB_SCOURCE)
+        self.lfm_source_blocks[FAULTS.DBE] = self.BasicEvent(FAULTS.DBE, self.DBE_SCOURCE)
         
         # --- SPFM Coverage Blocks ---
-        self.spfm_coverage_blocks['SBE'] = self.CoverageBlock("SBE", self.SEC_ECC_DC)
+        self.spfm_coverage_blocks[FAULTS.SBE] = self.CoverageBlock(FAULTS.SBE, self.SEC_ECC_DC)
         
         # --- SPFM Split Blocks ---
-        self.spfm_split_blocks['DBE'] = self.SplitBlock(
-            "DBE", 
-            {'DBE': self.DBE_TO_DBE_P, 'TBE': self.DBE_TO_TBE_P}
+        self.spfm_split_blocks[FAULTS.DBE] = self.SplitBlock(
+            FAULTS.DBE, 
+            {FAULTS.DBE: self.DBE_TO_DBE_P, FAULTS.TBE: self.DBE_TO_TBE_P}
         )
+        
+        # ---Sum Blocks ---
     
     

@@ -1,0 +1,59 @@
+from Modules.Base import Base,FAULTS
+
+class BUS_TRIM(Base):
+    """
+    Specific Safety Element (SEC) for LPDDR4.
+    Only defines the unique parameters and block connections.
+    """
+    def __init__(self, name: str, spfm_input: dict, lfm_input):
+        
+        self.spfm_SBE_split = {FAULTS.SBE: 0.438 }  
+        self.spfm_DBE_split = {FAULTS.SBE: 0.496 , FAULTS.DBE:0.314}
+        self.spfm_TBE_split = {FAULTS.SBE:0.325,FAULTS.DBE:0.419,FAULTS.TBE:0.175}
+        
+        self.lfm_SBE_split = {FAULTS.SBE: 0.438}
+        self.lfm_DBE_split = {FAULTS.SBE: 0.496, FAULTS.DBE:0.314}
+        
+        self.spfm_MBE_Source = 2.3
+        self.spfm_AZ_Source = 172
+        
+        super().__init__(name, spfm_input, lfm_input)
+
+    def configure_blocks(self):
+        """
+        Implements the abstract method to instantiate the blocks unique to SEC.
+        """
+        
+        # --- SPFM Split Blocks ---
+        self.spfm_split_blocks[FAULTS.SBE] = self.SplitBlock(
+            FAULTS.SBE, 
+            self.spfm_SBE_split
+        )
+        
+        self.spfm_split_blocks[FAULTS.DBE] = self.SplitBlock(
+            FAULTS.DBE, 
+            self.spfm_DBE_split
+        )
+        
+        self.spfm_split_blocks[FAULTS.TBE] = self.SplitBlock(
+            FAULTS.TBE, 
+            self.spfm_TBE_split
+        )
+        
+        
+        # --- LFM Split Blocks ---
+        self.lfm_split_blocks[FAULTS.SBE] = self.SplitBlock(
+            FAULTS.SBE, 
+            self.lfm_SBE_split
+        )
+        
+        self.lfm_split_blocks[FAULTS.DBE] = self.SplitBlock(
+            FAULTS.DBE, 
+            self.lfm_DBE_split
+        )
+        
+        # ---SOURCE Blocks ---
+        
+        self.spfm_source_blocks[FAULTS.MBE] = self.BasicEvent(FAULTS.MBE,self.spfm_MBE_Source)
+        self.spfm_source_blocks[FAULTS.AZ] = self.BasicEvent(FAULTS.AZ,self.spfm_AZ_Source)
+    

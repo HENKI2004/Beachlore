@@ -6,7 +6,7 @@ class Sum_Block:
     failure rates (lambdas).
     """
     
-    def __init__(self, name: str, input_components: list):
+    def __init__(self, input: str, input_components: list):
         """
         Constructor for the SumBlock.
 
@@ -17,7 +17,7 @@ class Sum_Block:
         @param input_components: A list of objects that provide failure rates 
                                  via a get_output_rate() method.
         """
-        self.name = name
+        self.name = input
         self.input_components = input_components
 
     def compute_fit(self) -> float:
