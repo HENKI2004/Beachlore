@@ -34,8 +34,8 @@ class Sum_Block:
         
         for component in self.input_components:
             try:
-                lambda_sum += component.get_output_rate()
+                lambda_sum += component.compute_fit()
             except AttributeError as e:
-                print(f"Error in {self.name}: Input component is missing required method 'get_output_rate()'. Details: {e}")
+                print(f"Error in {self.name}: Input component is missing required method 'compute_fit()'. Details: {e}")
                 pass 
         return lambda_sum

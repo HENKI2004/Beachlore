@@ -46,7 +46,5 @@ class Split_Block:
         for output_name, p_i in self.distribution_rates.items():
             lambda_i = lambda_in * p_i
             results[output_name] = lambda_i
-            
-        lambda_safe = lambda_in * (1.0 - self.sum_of_rates)
         
         return results

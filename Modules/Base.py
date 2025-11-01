@@ -16,14 +16,18 @@ class FAULTS(Enum):
     WD = auto()
     AZ = auto()
     SB = auto()
+    # Hinzugefügte Faults für die neuen Blöcke
+    SDB = auto() # SEC-DED Broken
+    OTH = auto() # Other Components
+    SBE_IF = auto()
 
 class Base(ABC):
     
     def __init__(self, name: str, spfm_input: dict, lfm_input : dict):
 
         self.name = name
-        self.spfm_input = spfm_input
-        self.lfm_input = lfm_input
+        self.spfm_input = spfm_input.copy()
+        self.lfm_input = lfm_input.copy()
         
         self.spfm_output = defaultdict(float) # Lambda_Dangerous (RF)
         self.lfm_output = defaultdict(float)  # Lambda_MPF_L (Latent)
@@ -49,7 +53,21 @@ class Base(ABC):
     def configure_blocks(self):
         pass
         
-    def computefit(self) -> dict: 
+    def compute_fit(self) -> dict:
+        
+        # 3. ADD SOURCE BLOCK RATES
+        for name, block in self.spfm_source_blocks.items():
+            
+            rate_to_add = block.compute_fit()
+            current_rate = self.spfm_input.get(name, 0.0)
+            self.spfm_input[name] = current_rate + rate_to_add
+            
+        for name, block in self.lfm_source_blocks.items():
+            rate_to_add = block.compute_fit()
+            current_rate = self.lfm_input.get(name, 0.0)
+            self.lfm_input[name] = current_rate + rate_to_add
+        
+         
         # 1. PROCESS SPFM INPUTS
         for name, rate in self.spfm_input.items():
             was_processed = False 
@@ -70,7 +88,11 @@ class Base(ABC):
                 split_results:dict = self.spfm_split_blocks[name].compute_fit(rate)
                 
                 for split_name, split_rate in split_results.items():
-                    self.spfm_output[split_name] += split_rate 
+                    # --- KORREKTUR HINZUGEFÜGT ---
+                    # Ignoriere 'Safe' Faults, da sie nicht zu SPFM/LFM beitragen
+                    if split_name != 'Safe':
+                        self.spfm_output[split_name] += split_rate 
+                # --- ENDE DER KORREKTUR ---
                 
                 was_processed = True
             
@@ -82,22 +104,31 @@ class Base(ABC):
         for name, rate in self.lfm_input.items():
             was_processed = False
             
+            # Check for LFM Coverage Block
+            if name in self.lfm_coverage_blocks:
+                coverage_results = self.lfm_coverage_blocks[name].compute_fit(rate)
+                lambda_RF = coverage_results['RF'] # Gedeckte latente Fehler werden zu RF (nicht weiter verfolgt)
+                lambda_MPFL = coverage_results['MPF_L']
+                
+                # Wir interessieren uns nur für die verbleibenden latenten Fehler
+                self.lfm_output[name] += lambda_RF 
+                
+                was_processed = True
+
+            # Check for LFM Split Block
             if name in self.lfm_split_blocks:
                 split_results:dict = self.lfm_split_blocks[name].compute_fit(rate)
                 for split_name, split_rate in split_results.items():
-                    self.lfm_output[split_name] += split_rate
+                    # --- KORREKTUR HINZUGEFÜGT ---
+                    if split_name != 'Safe':
+                        self.lfm_output[split_name] += split_rate
+                # --- ENDE DER KORREKTUR ---
                 
                 was_processed = True
                 
             if not was_processed:
                 self.lfm_output[name] += rate
         
-        # 3. ADD SOURCE BLOCK RATES
-        for name, block in self.spfm_source_blocks.items():
-            self.spfm_output[name] += block.get_output_rate()
-            
-        for name, block in self.lfm_source_blocks.items():
-            self.lfm_output[name] += block.get_output_rate()
         
         # 4. RETURN FINAL RESULTS
         return {

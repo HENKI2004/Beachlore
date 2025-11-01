@@ -17,7 +17,7 @@ class Basic_Event:
         self.output = output
         self.lambda_BE = rate  
 
-    def get_output_rate(self) -> float:
+    def compute_fit(self) -> float:
         """
         Retrieves the failure rate of the Basic Event.
 

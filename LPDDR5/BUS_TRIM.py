@@ -11,10 +11,6 @@ class BUS_TRIM(Base):
         self.spfm_DBE_split = {FAULTS.SBE: 0.496 , FAULTS.DBE:0.314}
         self.spfm_TBE_split = {FAULTS.SBE:0.325,FAULTS.DBE:0.419,FAULTS.TBE:0.175}
         
-        self.lfm_SBE_split = {FAULTS.SBE: 0.438}
-        self.lfm_DBE_split = {FAULTS.SBE: 0.496, FAULTS.DBE:0.314}
-        
-        self.spfm_MBE_Source = 2.3
         self.spfm_AZ_Source = 172
         
         super().__init__(name, spfm_input, lfm_input)
@@ -41,20 +37,10 @@ class BUS_TRIM(Base):
         )
         
         
-        # --- LFM Split Blocks ---
-        self.lfm_split_blocks[FAULTS.SBE] = self.SplitBlock(
-            FAULTS.SBE, 
-            self.lfm_SBE_split
-        )
-        
-        self.lfm_split_blocks[FAULTS.DBE] = self.SplitBlock(
-            FAULTS.DBE, 
-            self.lfm_DBE_split
-        )
+        # --- LFM Split Blocks --- 
         
         # ---SOURCE Blocks ---
         
-        self.spfm_source_blocks[FAULTS.MBE] = self.BasicEvent(FAULTS.MBE,self.spfm_MBE_Source)
         self.spfm_source_blocks[FAULTS.AZ] = self.BasicEvent(FAULTS.AZ,self.spfm_AZ_Source)
 
         #---Sum Blocks---#
