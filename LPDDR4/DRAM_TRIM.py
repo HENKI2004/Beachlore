@@ -1,10 +1,7 @@
 from Modules.Base import Base,FAULTS
 
 class DRAM_TRIM(Base):
-    """
-    Specific Safety Element (SEC) for LPDDR4.
-    Only defines the unique parameters and block connections.
-    """
+
     def __init__(self, name: str, spfm_input: dict, lfm_input):
         
         self.spfm_SBE_split = {FAULTS.SBE:0.94 }  
@@ -17,9 +14,6 @@ class DRAM_TRIM(Base):
         super().__init__(name, spfm_input, lfm_input)
 
     def configure_blocks(self):
-        """
-        Implements the abstract method to instantiate the blocks unique to SEC.
-        """
         
         # --- SPFM Split Blocks ---
         self.spfm_split_blocks[FAULTS.SBE] = self.SplitBlock(

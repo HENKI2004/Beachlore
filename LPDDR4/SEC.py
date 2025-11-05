@@ -1,10 +1,7 @@
 from Modules.Base import Base,FAULTS
 
 class SEC(Base):
-    """
-    Specific Safety Element (SEC) for LPDDR4.
-    Only defines the unique parameters and block connections.
-    """
+    
     def __init__(self, name: str, spfm_input: dict, lfm_input):
         
         self.SEC_ECC_DC = 1.0        # 100% Diagnostic Coverage for SBEs
@@ -16,9 +13,6 @@ class SEC(Base):
         super().__init__(name, spfm_input, lfm_input)
 
     def configure_blocks(self):
-        """
-        Implements the abstract method to instantiate the blocks unique to SEC.
-        """
         # --- LFM Source Blocks ---
         self.lfm_source_blocks[FAULTS.SB] = self.BasicEvent(FAULTS.SB, self.SB_SCOURCE)
         self.lfm_source_blocks[FAULTS.DBE] = self.BasicEvent(FAULTS.DBE, self.DBE_SCOURCE)

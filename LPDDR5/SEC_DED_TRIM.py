@@ -1,11 +1,7 @@
 from Modules.Base import Base,FAULTS
 
 class SEC_DED_TRIM(Base):
-    """
-    Stellt den SEC-DED-TRIM-Block aus Abbildung 3 dar.
-    Modelliert die Redundanzentfernung und die damit verbundene Neuverteilung 
-    von Fehlern (Split-Operationen).
-    """
+
     def __init__(self, name: str, spfm_input: dict, lfm_input):
         
         # --- SPFM Split-Parameter ---
@@ -18,9 +14,6 @@ class SEC_DED_TRIM(Base):
         super().__init__(name, spfm_input, lfm_input)
 
     def configure_blocks(self):
-        """
-        Instanziiert die Split-Blöcke für SEC-DED-TRIM.
-        """
         
         # --- SPFM Split Blöcke ---
         self.spfm_split_blocks[FAULTS.SBE] = self.SplitBlock(FAULTS.SBE, self.spfm_SBE_split)

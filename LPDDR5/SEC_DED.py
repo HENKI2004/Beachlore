@@ -1,11 +1,7 @@
 from Modules.Base import Base,FAULTS
 
 class SEC_DED(Base):
-    """
-    Stellt den SEC-DED-Block aus Abbildung 3 dar.
-    Wendet Coverage auf SBE, DBE, TBE und MBE an.
-    Fügt eine latente Fehlerquelle für den Ausfall des SEC-DED-Blocks hinzu.
-    """
+
     def __init__(self, name: str, spfm_input: dict, lfm_input):
         
         # --- SPFM-Parameter ---
@@ -14,7 +10,7 @@ class SEC_DED(Base):
         self.MBE_DC = 0.5         # 50% Coverage für MBE
         self.TBE_DC = 1.0         # 100% Coverage für den TBE-Anteil
         
-        # TBE-Split: 44% werden von TBE-Coverage (100%) abgedeckt, 56% werden zu MBE
+        # TBE-Split:
         self.TBE_SPLIT_TO_MBE = 0.56
 
         # --- LFM-Parameter ---
@@ -27,9 +23,6 @@ class SEC_DED(Base):
         super().__init__(name, spfm_input, lfm_input)
 
     def configure_blocks(self):
-        """
-        Instanziiert die Blöcke für SEC-DED.
-        """
         
         # --- SPFM Blöcke ---
         self.spfm_coverage_blocks[FAULTS.SBE] = self.CoverageBlock(FAULTS.SBE, self.SBE_DC,self.SBE_DC)

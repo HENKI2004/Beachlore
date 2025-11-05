@@ -16,9 +16,8 @@ class FAULTS(Enum):
     WD = auto()
     AZ = auto()
     SB = auto()
-    # Hinzugefügte Faults für die neuen Blöcke
-    SDB = auto() # SEC-DED Broken
-    OTH = auto() # Other Components
+    SDB = auto() 
+    OTH = auto() 
     SBE_IF = auto()
 
 class Base(ABC):
@@ -29,8 +28,8 @@ class Base(ABC):
         self.spfm_input = spfm_input.copy()
         self.lfm_input = lfm_input.copy()
         
-        self.spfm_output = defaultdict(float) # Lambda_Dangerous (RF)
-        self.lfm_output = defaultdict(float)  # Lambda_MPF_L (Latent)
+        self.spfm_output = defaultdict(float) 
+        self.lfm_output = defaultdict(float)  
         
         self.spfm_split_blocks = {}
         self.spfm_coverage_blocks = {}
@@ -88,15 +87,11 @@ class Base(ABC):
                 split_results:dict = self.spfm_split_blocks[name].compute_fit(rate)
                 
                 for split_name, split_rate in split_results.items():
-                    # --- KORREKTUR HINZUGEFÜGT ---
-                    # Ignoriere 'Safe' Faults, da sie nicht zu SPFM/LFM beitragen
                     if split_name != 'Safe':
                         self.spfm_output[split_name] += split_rate 
-                # --- ENDE DER KORREKTUR ---
                 
                 was_processed = True
             
-            # Add Unprocessed Rate to Output
             if not was_processed:
                 self.spfm_output[name] += rate
         
@@ -107,10 +102,8 @@ class Base(ABC):
             # Check for LFM Coverage Block
             if name in self.lfm_coverage_blocks:
                 coverage_results = self.lfm_coverage_blocks[name].compute_fit(rate)
-                lambda_RF = coverage_results['RF'] # Gedeckte latente Fehler werden zu RF (nicht weiter verfolgt)
+                lambda_RF = coverage_results['RF'] 
                 lambda_MPFL = coverage_results['MPF_L']
-                
-                # Wir interessieren uns nur für die verbleibenden latenten Fehler
                 self.lfm_output[name] += lambda_RF 
                 
                 was_processed = True
@@ -119,10 +112,8 @@ class Base(ABC):
             if name in self.lfm_split_blocks:
                 split_results:dict = self.lfm_split_blocks[name].compute_fit(rate)
                 for split_name, split_rate in split_results.items():
-                    # --- KORREKTUR HINZUGEFÜGT ---
                     if split_name != 'Safe':
                         self.lfm_output[split_name] += split_rate
-                # --- ENDE DER KORREKTUR ---
                 
                 was_processed = True
                 
