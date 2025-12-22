@@ -1,4 +1,4 @@
-from .Base import FAULTS
+from .Faults import FAULTS
 
 class ASIL_Block:
     """

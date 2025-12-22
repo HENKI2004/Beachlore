@@ -1,4 +1,9 @@
-from Modules.Base import Base,FAULTS
+from Modules.Base import Base
+from Modules.Faults import FAULTS
+from Modules.Pipeline_Block import Pipeline_Block
+from Modules.Basic_Event import Basic_Event
+from Modules.Coverage_Block import Coverage_Block
+from Modules.Split_Block import Split_Block
 
 class SEC_DED_TRIM(Base):
 
@@ -17,13 +22,17 @@ class SEC_DED_TRIM(Base):
         super().__init__(name, spfm_input, lfm_input)
 
     def configure_blocks(self):
-        
-        # --- SPFM Split Blöcke ---
-        self.spfm_split_blocks[FAULTS.SBE] = self.SplitBlock(FAULTS.SBE, self.spfm_SBE_split)
-        self.spfm_split_blocks[FAULTS.DBE] = self.SplitBlock(FAULTS.DBE, self.spfm_DBE_split)
-        self.spfm_split_blocks[FAULTS.TBE] = self.SplitBlock(FAULTS.TBE, self.spfm_TBE_split)
-        
-        # --- LFM Split Blöcke ---
-        self.lfm_split_blocks[FAULTS.SBE] = self.SplitBlock(FAULTS.SBE, self.lfm_SBE_split)
-        self.lfm_split_blocks[FAULTS.DBE] = self.SplitBlock(FAULTS.DBE, self.lfm_DBE_split)
-        self.lfm_split_blocks[FAULTS.TBE] = self.SplitBlock(FAULTS.TBE, self.lfm_TBE_split)
+        """
+        Configures the root block as a pipeline of sequential split operations for both SPFM and LFM.
+        """
+        self.root_block = Pipeline_Block(self.name, [
+            # SPFM Splits (Dangerous/Residual path)
+            Split_Block("SPFM_SBE_Split", FAULTS.SBE, self.spfm_SBE_split, is_spfm=True),
+            Split_Block("SPFM_DBE_Split", FAULTS.DBE, self.spfm_DBE_split, is_spfm=True),
+            Split_Block("SPFM_TBE_Split", FAULTS.TBE, self.spfm_TBE_split, is_spfm=True),
+            
+            # LFM Splits (Latent path)
+            Split_Block("LFM_SBE_Split", FAULTS.SBE, self.lfm_SBE_split, is_spfm=False),
+            Split_Block("LFM_DBE_Split", FAULTS.DBE, self.lfm_DBE_split, is_spfm=False),
+            Split_Block("LFM_TBE_Split", FAULTS.TBE, self.lfm_TBE_split, is_spfm=False)
+        ])

@@ -1,4 +1,6 @@
 from .Block_Interface import Block_Interface
+from .Faults import FAULTS
+
 
 class Sum_Block(Block_Interface):
     """

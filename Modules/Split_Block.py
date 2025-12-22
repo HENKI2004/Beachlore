@@ -1,5 +1,6 @@
 from .Block_Interface import Block_Interface
-from .Base import FAULTS
+from .Faults import FAULTS
+
 
 class Split_Block(Block_Interface):
     """

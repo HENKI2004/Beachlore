@@ -1,4 +1,8 @@
-from Modules.Base import Base,FAULTS
+from Modules.Base import Base
+from Modules.Faults import FAULTS
+from Modules.Pipeline_Block import Pipeline_Block
+from Modules.Split_Block import Split_Block
+from Modules.Basic_Event import Basic_Event
 
 class BUS_TRIM(Base):
     
@@ -17,39 +21,20 @@ class BUS_TRIM(Base):
         super().__init__(name, spfm_input, lfm_input)
 
     def configure_blocks(self):
-        
-        # --- SPFM Split Blocks ---
-        self.spfm_split_blocks[FAULTS.SBE] = self.SplitBlock(
-            FAULTS.SBE, 
-            self.spfm_SBE_split
-        )
-        
-        self.spfm_split_blocks[FAULTS.DBE] = self.SplitBlock(
-            FAULTS.DBE, 
-            self.spfm_DBE_split
-        )
-        
-        self.spfm_split_blocks[FAULTS.TBE] = self.SplitBlock(
-            FAULTS.TBE, 
-            self.spfm_TBE_split
-        )
-        
-        
-        # --- LFM Split Blocks ---
-        self.lfm_split_blocks[FAULTS.SBE] = self.SplitBlock(
-            FAULTS.SBE, 
-            self.lfm_SBE_split
-        )
-        
-        self.lfm_split_blocks[FAULTS.DBE] = self.SplitBlock(
-            FAULTS.DBE, 
-            self.lfm_DBE_split
-        )
-        
-        # ---SOURCE Blocks ---
-        
-        self.spfm_source_blocks[FAULTS.MBE] = self.BasicEvent(FAULTS.MBE,self.spfm_MBE_Source)
-        self.spfm_source_blocks[FAULTS.AZ] = self.BasicEvent(FAULTS.AZ,self.spfm_AZ_Source)
+        """
+        Configures the root block as a pipeline of fault injections and splits.
+        """
+        self.root_block = Pipeline_Block(self.name, [
+            # 1. Sources (Basic Events) should generally come first to inject rates
+            Basic_Event(FAULTS.MBE, self.spfm_MBE_Source, is_spfm=True),
+            Basic_Event(FAULTS.AZ, self.spfm_AZ_Source, is_spfm=True),
 
-        #---Sum Blocks---#
-        
+            # 2. SPFM Splits
+            Split_Block("SPFM_SBE_Split", FAULTS.SBE, self.spfm_SBE_split, is_spfm=True),
+            Split_Block("SPFM_DBE_Split", FAULTS.DBE, self.spfm_DBE_split, is_spfm=True),
+            Split_Block("SPFM_TBE_Split", FAULTS.TBE, self.spfm_TBE_split, is_spfm=True),
+
+            # 3. LFM Splits
+            Split_Block("LFM_SBE_Split", FAULTS.SBE, self.lfm_SBE_split, is_spfm=False),
+            Split_Block("LFM_DBE_Split", FAULTS.DBE, self.lfm_DBE_split, is_spfm=False)
+        ])
