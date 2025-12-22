@@ -1,41 +1,54 @@
-class Coverage_Block:
-    
+from .Block_Interface import Block_Interface
+from .Base import FAULTS
 
-    def __init__(self, input: str, dc_rate_c_or_cR: float, dc_rate_latent_cL: float = None):
-        
-        self.name = input
+class Coverage_Block(Block_Interface):
+    """
+    Applies diagnostic coverage to a specific fault type, splitting the rate into 
+    residual (SPFM) and latent (LFM) components.
+    """
+
+    def __init__(self, target_fault: FAULTS, dc_rate_c_or_cR: float, dc_rate_latent_cL: float = None):
+        """
+        Initializes the Coverage_Block with diagnostic coverage parameters.
+
+        @param target_fault The type of fault (Enum) this block processes.
+        @param dc_rate_c_or_cR Residual diagnostic coverage or base coverage for LPDDR4.
+        @param dc_rate_latent_cL Latent diagnostic coverage for LPDDR5 mode.
+        """
+        self.target_fault = target_fault
         is_lpddr5_mode = (dc_rate_latent_cL is not None)
 
         if is_lpddr5_mode:
-            # --- LPDDR5-Modus  ---
-            c_R = dc_rate_c_or_cR
-            c_L = dc_rate_latent_cL
-            
-            if not (0.0 <= c_R <= 1.0):
-                raise ValueError(f"LPDDR5-Modus: Residual DC rate (c_R) '{c_R}' muss zwischen 0.0 und 1.0 liegen.")
-            if not (0.0 <= c_L <= 1.0):
-                raise ValueError(f"LPDDR5-Modus: Latent DC rate (c_L) '{c_L}' muss zwischen 0.0 und 1.0 liegen.")
-            
-            self.c_R = c_R
-            self.c_L = c_L
-
+            if not (0.0 <= dc_rate_c_or_cR <= 1.0) or not (0.0 <= dc_rate_latent_cL <= 1.0):
+                raise ValueError("Diagnostic coverage rates must be between 0.0 and 1.0.")
+            self.c_R = dc_rate_c_or_cR
+            self.c_L = dc_rate_latent_cL
         else:
-            # --- LPDDR4-Modus ---
-            c = dc_rate_c_or_cR 
-            
-            if not (0.0 <= c <= 1.0):
-                raise ValueError(f"LPDDR4-Modus: Diagnostic Coverage rate (c) '{c}' muss zwischen 0.0 und 1.0 liegen.")
+            if not (0.0 <= dc_rate_c_or_cR <= 1.0):
+                raise ValueError("Diagnostic coverage rate must be between 0.0 and 1.0.")
+            self.c_R = dc_rate_c_or_cR
+            self.c_L = 1.0 - dc_rate_c_or_cR
 
-            self.c_R = c
-            
-            self.c_L = 1.0 - c
+    def compute_fit(self, spfm_rates: dict, lfm_rates: dict) -> tuple[dict, dict]:
+        """
+        Transforms the input rates by applying coverage to the target fault.
 
-    def compute_fit(self, lambda_in: float) -> dict:
+        @param spfm_rates Dictionary containing current SPFM/residual fault rates.
+        @param lfm_rates Dictionary containing current LFM/latent fault rates.
+        @return A tuple of updated (spfm_rates, lfm_rates) dictionaries.
+        """
+        new_spfm = spfm_rates.copy()
+        new_lfm = lfm_rates.copy()
         
-        lambda_rf = lambda_in * (1.0 - self.c_R)
-        lambda_mpf_l = lambda_in * (1.0 - self.c_L)
+        if self.target_fault in new_spfm:
+            lambda_in = new_spfm.pop(self.target_fault)
+            
+            lambda_rf = lambda_in * (1.0 - self.c_R)
+            if lambda_rf > 0:
+                new_spfm[self.target_fault] = new_spfm.get(self.target_fault, 0.0) + lambda_rf
+            
+            lambda_mpf_l = lambda_in * (1.0 - self.c_L)
+            if lambda_mpf_l > 0:
+                new_lfm[self.target_fault] = new_lfm.get(self.target_fault, 0.0) + lambda_mpf_l
         
-        return {
-            'RF': lambda_rf,
-            'MPF_L': lambda_mpf_l
-        }
+        return new_spfm, new_lfm

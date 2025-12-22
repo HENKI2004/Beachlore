@@ -1,22 +1,48 @@
-class Split_Block:
-    
-    def __init__(self, input: str, distribution_rates: dict):
-        
+from .Block_Interface import Block_Interface
+from .Base import FAULTS
+
+class Split_Block(Block_Interface):
+    """
+    Distributes the FIT rate of a specific fault type across multiple other fault types 
+    based on a defined distribution.
+    """
+
+    def __init__(self, name: str, fault_to_split: FAULTS, distribution_rates: dict, is_spfm: bool = True):
+        """
+        Initializes the Split_Block with distribution parameters.
+
+        @param name The name of the split block.
+        @param fault_to_split The source fault type (Enum) to be divided.
+        @param distribution_rates A dictionary mapping target fault types to their distribution probability.
+        @param is_spfm Whether to perform the split on the SPFM dictionary (True) or LFM dictionary (False).
+        """
         sum_of_rates = sum(distribution_rates.values())
-        
         if sum_of_rates > 1.0 + 1e-9: 
             raise ValueError(f"Sum of distribution rates ({sum_of_rates:.4f}) must not exceed 1.0.")
             
-        self.name = input
-        self.distribution_rates = distribution_rates  
-        self.sum_of_rates = sum_of_rates
+        self.name = name
+        self.fault_to_split = fault_to_split
+        self.distribution_rates = distribution_rates
+        self.is_spfm = is_spfm
 
-    def compute_fit(self, lambda_in: float) -> dict:
+    def compute_fit(self, spfm_rates: dict, lfm_rates: dict) -> tuple[dict, dict]:
+        """
+        Transforms the input rates by redistributing the target fault's FIT rate.
+
+        @param spfm_rates Dictionary containing current SPFM/residual fault rates.
+        @param lfm_rates Dictionary containing current LFM/latent fault rates.
+        @return A tuple of updated (spfm_rates, lfm_rates) dictionaries.
+        """
+        new_spfm = spfm_rates.copy()
+        new_lfm = lfm_rates.copy()
         
-        results = {}
+        target_dict = new_spfm if self.is_spfm else new_lfm
         
-        for output_name, p_i in self.distribution_rates.items():
-            lambda_i = lambda_in * p_i
-            results[output_name] = lambda_i
+        if self.fault_to_split in target_dict:
+            original_rate = target_dict.pop(self.fault_to_split)
+            
+            for target_fault, probability in self.distribution_rates.items():
+                split_rate = original_rate * probability
+                target_dict[target_fault] = target_dict.get(target_fault, 0.0) + split_rate
         
-        return results
+        return new_spfm, new_lfm
