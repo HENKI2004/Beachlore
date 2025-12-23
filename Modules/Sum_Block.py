@@ -2,15 +2,16 @@
 from .Block_Interface import Block_Interface
 from .Faults import FAULTS
 from collections import defaultdict
+from .Coverage_Block import Coverage_Block
+from .Split_Block import Split_Block
+from .Transformation_Block import Transformation_Block
 
 class Sum_Block(Block_Interface):
-
     def __init__(self, name: str, sub_blocks: list[Block_Interface]):
         self.name = name
         self.sub_blocks = sub_blocks
 
     def compute_fit(self, spfm_rates: dict, lfm_rates: dict) -> tuple[dict, dict]:
-        # ... (Berechnungslogik bleibt identisch) ...
         total_spfm = spfm_rates.copy()
         total_lfm = lfm_rates.copy()
         for block in self.sub_blocks:
@@ -24,74 +25,73 @@ class Sum_Block(Block_Interface):
         return total_spfm, total_lfm
 
     def to_dot(self, dot, input_ports: dict) -> dict:
-        # Sammler für neue Knoten-IDs, getrennt nach Pfadtyp
-        rf_sources = defaultdict(list)
-        lat_sources = defaultdict(list)
+        rf_collect = defaultdict(list)
+        lat_collect = defaultdict(list)
+        
+        # 1. Analyse: Welche Fehler-Pfade werden von Blöcken "konsumiert"?
+        # (D.h. sie gehen in einen Block rein und kommen transformiert wieder raus)
+        consumed_rf = set()
+        consumed_lat = set()
+        
+        for b in self.sub_blocks:
+            if isinstance(b, (Coverage_Block, Split_Block)):
+                # Diese Blöcke "schlucken" ihren target_fault/fault_to_split
+                fault = getattr(b, 'target_fault', None) or getattr(b, 'fault_to_split', None)
+                if b.is_spfm: consumed_rf.add(fault)
+                else: consumed_lat.add(fault)
+            elif isinstance(b, Transformation_Block):
+                consumed_rf.add(b.source)
 
+        # 2. Unterblöcke zeichnen und deren Ausgänge sammeln
         with dot.subgraph(name=f"cluster_sum_{id(self)}") as c:
             c.attr(label=self.name, style="dotted", color="gray80", fontcolor="gray50")
             
-            # 1. Alle Unterblöcke ausführen
             for block in self.sub_blocks:
                 res_ports = block.to_dot(c, input_ports)
-                
                 for fault, ports in res_ports.items():
                     in_p = input_ports.get(fault, {})
-                    
-                    # Wir sammeln eine ID NUR, wenn sie sich vom Eingang unterscheidet
-                    # (d.h. der Block hat hier etwas Neues erzeugt/geändert)
-                    rf_p = ports.get('rf')
-                    if rf_p and rf_p != in_p.get('rf'):
-                        rf_sources[fault].append(rf_p)
-                    
-                    lat_p = ports.get('latent')
-                    if lat_p and lat_p != in_p.get('latent'):
-                        lat_sources[fault].append(lat_p)
+                    # Sammle Port nur, wenn er neu/geändert ist
+                    if ports.get('rf') and ports['rf'] != in_p.get('rf'):
+                        rf_collect[fault].append(ports['rf'])
+                    if ports.get('latent') and ports['latent'] != in_p.get('latent'):
+                        lat_collect[fault].append(ports['latent'])
             
-            # 2. Finale Ausgänge bestimmen
+            # 3. Finale Pfade zusammenführen
             final_ports = {}
-            # Wir betrachten alle Fehler aus dem Input und alle, die modifiziert wurden
-            all_faults = set(input_ports.keys()) | set(rf_sources.keys()) | set(lat_sources.keys())
+            all_faults = set(input_ports.keys()) | set(rf_collect.keys()) | set(lat_collect.keys())
             
             for fault in all_faults:
                 in_p = input_ports.get(fault, {'rf': None, 'latent': None})
                 
-                # --- RESIDUAL (RF) LOGIK ---
-                srcs_rf = list(set(rf_sources[fault])) # Eindeutige neue IDs
-                res_rf = None
+                # --- RESIDUAL PFAD (ROT) ---
+                srcs_rf = list(set(rf_collect[fault]))
+                # WICHTIG: Füge Input nur hinzu, wenn er nicht durch einen Block fließt
+                if in_p['rf'] and fault not in consumed_rf:
+                    srcs_rf.append(in_p['rf'])
                 
+                res_rf = None
                 if len(srcs_rf) > 1:
-                    # Mehrere neue Quellen -> Plus-Symbol (Summe)
-                    j_id = f"junc_{fault.name}_rf_{id(self)}"
-                    c.node(j_id, label="+", shape="circle", width="0.3", fixedsize="true", 
-                           color="red", fontcolor="red", fontsize="10")
-                    for s in srcs_rf:
-                        c.edge(s, j_id, color="red")
+                    j_id = f"sum_{fault.name}_rf_{id(self)}"
+                    c.node(j_id, label="+", shape="circle", width="0.3", fixedsize="true", color="red", fontcolor="red", fontsize="10")
+                    for s in srcs_rf: c.edge(s, j_id, color="red")
                     res_rf = j_id
                 elif len(srcs_rf) == 1:
-                    # Nur eine neue Quelle -> Direkt weiterleiten
                     res_rf = srcs_rf[0]
-                else:
-                    # Keine Änderung durch Unterblöcke -> Original-Eingang beibehalten (Bypass)
-                    res_rf = in_p.get('rf')
 
-                # --- LATENT (L) LOGIK ---
-                srcs_lat = list(set(lat_sources[fault]))
-                res_lat = None
+                # --- LATENT PFAD (BLAU) ---
+                srcs_lat = list(set(lat_collect[fault]))
+                if in_p['latent'] and fault not in consumed_lat:
+                    srcs_lat.append(in_p['latent'])
                 
+                res_lat = None
                 if len(srcs_lat) > 1:
-                    j_id = f"junc_{fault.name}_lat_{id(self)}"
-                    c.node(j_id, label="+", shape="circle", width="0.3", fixedsize="true", 
-                           color="blue", fontcolor="blue", fontsize="10")
-                    for s in srcs_lat:
-                        c.edge(s, j_id, color="blue", style="dashed")
+                    j_id = f"sum_{fault.name}_lat_{id(self)}"
+                    c.node(j_id, label="+", shape="circle", width="0.3", fixedsize="true", color="blue", fontcolor="blue", fontsize="10")
+                    for s in srcs_lat: c.edge(s, j_id, color="blue", style="dashed")
                     res_lat = j_id
                 elif len(srcs_lat) == 1:
                     res_lat = srcs_lat[0]
-                else:
-                    res_lat = in_p.get('latent')
                 
-                # Port-Dictionary für diesen Fehler aktualisieren
                 final_ports[fault] = {'rf': res_rf, 'latent': res_lat}
                     
         return final_ports
