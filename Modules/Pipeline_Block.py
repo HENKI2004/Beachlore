@@ -30,3 +30,23 @@ class Pipeline_Block(Block_Interface):
             current_spfm, current_lfm = block.compute_fit(current_spfm, current_lfm)
 
         return current_spfm, current_lfm
+    
+    def to_dot(self, dot, input_ports: dict) -> dict:
+        """
+        Verbindet die Blöcke der Pipeline sequenziell durch Weitergabe 
+        des Port-Dictionarys.
+        """
+        # Wir behalten den gestrichelten Rahmen für die logische Gruppierung bei
+        with dot.subgraph(name=f"cluster_pipe_{id(self)}") as c:
+            c.attr(label=self.name, style="dashed", color="gray80", fontcolor="gray50")
+            
+            # Der "Staffelstab": Das Dictionary mit den aktuellen Ein- und Ausgängen
+            current_ports = input_ports
+            
+            for block in self.blocks:
+                # Jeder Block erhält die Ports des Vorgängers, zeichnet seine 
+                # internen Verbindungen und gibt die neuen Ausgangs-Ports zurück.
+                current_ports = block.to_dot(c, current_ports)
+        
+        # Die Pipeline gibt die Ports des allerletzten Blocks in der Kette zurück
+        return current_ports

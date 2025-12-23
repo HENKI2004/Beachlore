@@ -16,3 +16,11 @@ class Block_Interface(ABC):
         @return A tuple of updated (spfm_rates, lfm_rates) dictionaries.
         """
         pass
+
+    @abstractmethod
+    def to_dot(self, dot, input_ports: dict) -> dict:
+        """
+        input_ports: { FAULTS.SBE: {'rf': 'node:p1', 'latent': 'node:p2'}, ... }
+        returns: Ein aktualisiertes Dictionary mit den Ausgangs-Ports dieses Blocks.
+        """
+        pass

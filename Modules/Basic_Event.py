@@ -33,3 +33,26 @@ class Basic_Event(Block_Interface):
         target_dict[self.fault_type] = target_dict.get(self.fault_type, 0.0) + self.lambda_BE
         
         return new_spfm, new_lfm
+    
+    def to_dot(self, dot, input_ports: dict) -> dict:
+        # Nutze .name für ein saubereres Label (z.B. "SBE" statt "FAULTS.SBE")
+        node_id = f"be_{self.fault_type.name}_{id(self)}"
+        val = self.lambda_BE[0] if isinstance(self.lambda_BE, tuple) else self.lambda_BE
+        label = f"{self.fault_type.name}\n{val:.2f}"
+        dot.node(node_id, label=label, shape="circle")
+        
+        new_ports = input_ports.copy()
+        
+        # Bestehende Ports für diesen Fehlertyp abrufen oder mit None initialisieren.
+        # Das stellt sicher, dass Pfade nur dann existieren, wenn sie eine Quelle haben.
+        current_fault_ports = new_ports.get(self.fault_type, {'rf': None, 'latent': None}).copy()
+        
+        if self.is_spfm:
+            # Nur den Residual-Pfad (rf) auf diesen Knoten setzen
+            current_fault_ports['rf'] = node_id
+        else:
+            # Nur den Latenten-Pfad (latent) auf diesen Knoten setzen
+            current_fault_ports['latent'] = node_id
+            
+        new_ports[self.fault_type] = current_fault_ports
+        return new_ports

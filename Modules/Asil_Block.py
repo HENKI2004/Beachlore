@@ -73,3 +73,14 @@ class ASIL_Block:
             'Lambda_RF_Sum': lambda_rf_sum,
             'ASIL_Achieved': achieved_asil
         }
+    
+    def to_dot(self, dot, input_ports: dict) -> dict:
+        node_id = f"asil_{id(self)}"
+        dot.node(node_id, label="Calculate ASIL", shape="rectangle", style="filled", fillcolor="white")
+        
+        for fault, ports in input_ports.items():
+            if ports.get('rf'):
+                dot.edge(ports['rf'], node_id, color="red")
+            if ports.get('latent'):
+                dot.edge(ports['latent'], node_id, color="blue", style="dashed")
+        return {} 

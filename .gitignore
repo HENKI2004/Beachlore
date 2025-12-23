@@ -1,3 +1,6 @@
 # Python bytecode files
 *.pyc
 __pycache__/
+Test/Test.py
+test_output_safety_model.pdf
+test_output_safety_model
