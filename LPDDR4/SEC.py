@@ -1,26 +1,16 @@
-import sys
-import os
-
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if project_root not in sys.path:
-    sys.path.append(project_root)
-
-from Modules.Base import Base
-from Modules.Faults import FAULTS
-from Modules.Pipeline_Block import Pipeline_Block
-from Modules.Sum_Block import Sum_Block
-from Modules.Basic_Event import Basic_Event
-from Modules.Coverage_Block import Coverage_Block
-from Modules.Split_Block import Split_Block
+from Modules import Base, FAULTS, Sum_Block, Basic_Event, Coverage_Block, Split_Block
 
 class SEC(Base):
     """
-    Single Error Correction component for LPDDR4 using the new block architecture.
+    Component for Single Error Correction (SEC) in LPDDR4 architectures.
+    This module handles SBE coverage and redistributes DBE failure rates.
     """
 
     def __init__(self, name: str):
         """
-        Initializes SEC parameters and calls the base constructor.
+        Initializes the SEC component with specific diagnostic coverage and failure rates.
+
+        @param name The descriptive name of the component.
         """
         self.SEC_ECC_DC = 1.0
         self.DBE_TO_DBE_P = 0.83
@@ -31,13 +21,16 @@ class SEC(Base):
 
     def configure_blocks(self):
         """
-        Configures the root block as a pipeline of LFM sources, SPFM coverage, and splits.
+        Configures the internal block structure, combining fault sources, coverage, and splits.
         """
         self.root_block = Sum_Block(self.name, [
             Basic_Event(FAULTS.SB, self.SB_SOURCE, is_spfm=False),
             Basic_Event(FAULTS.DBE, self.DBE_SOURCE, is_spfm=False),
             Coverage_Block(FAULTS.SBE, self.SEC_ECC_DC),
-            Split_Block("DBE_to_TBE_Split", FAULTS.DBE, 
-                        {FAULTS.DBE: self.DBE_TO_DBE_P, FAULTS.TBE: self.DBE_TO_TBE_P}, 
-                        is_spfm=True)
+            Split_Block(
+                "DBE_to_TBE_Split", 
+                FAULTS.DBE, 
+                {FAULTS.DBE: self.DBE_TO_DBE_P, FAULTS.TBE: self.DBE_TO_TBE_P}, 
+                is_spfm=True
+            )
         ])

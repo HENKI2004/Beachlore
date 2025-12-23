@@ -1,15 +1,4 @@
-import sys
-import os
-
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if project_root not in sys.path:
-    sys.path.append(project_root)
-
-from Modules.Base import Base
-from Modules.Faults import FAULTS
-from Modules.Sum_Block import Sum_Block
-from Modules.Pipeline_Block import Pipeline_Block
-from Modules.Basic_Event import Basic_Event
+from Modules import Base, FAULTS, Sum_Block, Basic_Event
 
 class Other_Components(Base):
     """
@@ -20,11 +9,9 @@ class Other_Components(Base):
         """
         Initializes the component and sets the constant source FIT rate.
         
-        @param name The name of the component.
-        @param spfm_input Initial dictionary of SPFM rates.
-        @param lfm_input Initial dictionary of LFM rates.
+        @param name The descriptive name of the component.
         """
-        self.source_rate = 96 
+        self.source_rate = 96.0 
         super().__init__(name)
 
     def configure_blocks(self):

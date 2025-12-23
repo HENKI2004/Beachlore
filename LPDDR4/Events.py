@@ -1,40 +1,33 @@
-import sys
-import os
-
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if project_root not in sys.path:
-    sys.path.append(project_root)
-
-from Modules.Base import Base
-from Modules.Faults import FAULTS
-from Modules.Pipeline_Block import Pipeline_Block
-from Modules.Sum_Block import Sum_Block
-from Modules.Basic_Event import Basic_Event
-from Modules.Coverage_Block import Coverage_Block
-from Modules.Split_Block import Split_Block
+from Modules import Base, FAULTS, Sum_Block, Basic_Event
 
 class Events(Base):
     """
-    Single Error Correction component for LPDDR4 using the new block architecture.
+    Primary failure rate source component for LPDDR4 DRAM.
+    This module initializes the baseline failure rates for SBE, DBE, MBE, and WD.
     """
 
     def __init__(self, name: str):
-        DRAM_FIT = 2300.0
+        """
+        Initializes the fault rates based on a baseline DRAM FIT value.
 
-        self.FAULT_SBE = 0.7 * DRAM_FIT
-        self.FAULT_DBE = 0.0748 * DRAM_FIT
-        self.FAULT_MBE = 0.0748 * DRAM_FIT
-        self.FAULT_WD = 0.0748 * DRAM_FIT
+        @param name The descriptive name of the component.
+        """
+        dram_fit = 2300.0
+
+        self.fault_sbe = 0.7 * dram_fit
+        self.fault_dbe = 0.0748 * dram_fit
+        self.fault_mbe = 0.0748 * dram_fit
+        self.fault_wd = 0.0748 * dram_fit
         
         super().__init__(name)
 
     def configure_blocks(self):
         """
-        Configures the root block as a pipeline of LFM sources, SPFM coverage, and splits.
+        Configures the internal block structure by injecting failure rates as basic events.
         """
         self.root_block = Sum_Block(self.name, [
-            Basic_Event(FAULTS.SBE, self.FAULT_SBE, is_spfm=True),
-            Basic_Event(FAULTS.DBE, self.FAULT_DBE, is_spfm=True),
-            Basic_Event(FAULTS.MBE, self.FAULT_MBE, is_spfm=True),
-            Basic_Event(FAULTS.WD, self.FAULT_WD, is_spfm=True),
+            Basic_Event(FAULTS.SBE, self.fault_sbe, is_spfm=True),
+            Basic_Event(FAULTS.DBE, self.fault_dbe, is_spfm=True),
+            Basic_Event(FAULTS.MBE, self.fault_mbe, is_spfm=True),
+            Basic_Event(FAULTS.WD, self.fault_wd, is_spfm=True),
         ])
