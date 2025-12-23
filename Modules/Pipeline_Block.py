@@ -7,9 +7,9 @@ class Pipeline_Block(Block_Interface):
 
     def __init__(self, name: str, blocks: list[Block_Interface]):
         """
-        Initializes the Pipeline_Block.
+        Initializes the Pipeline_Block with a sequence of sub-blocks.
 
-        @param name The name of the pipeline.
+        @param name The descriptive name of the pipeline.
         @param blocks A list of blocks implementing Block_Interface to be executed in order.
         """
         self.name = name
@@ -17,7 +17,7 @@ class Pipeline_Block(Block_Interface):
 
     def compute_fit(self, spfm_rates: dict, lfm_rates: dict) -> tuple[dict, dict]:
         """
-        Sequentially processes all blocks in the pipeline.
+        Sequentially processes all blocks in the pipeline, passing the output rates of one block to the next.
 
         @param spfm_rates Dictionary containing current SPFM/residual fault rates.
         @param lfm_rates Dictionary containing current LFM/latent fault rates.
@@ -33,20 +33,18 @@ class Pipeline_Block(Block_Interface):
     
     def to_dot(self, dot, input_ports: dict) -> dict:
         """
-        Verbindet die Blöcke der Pipeline sequenziell durch Weitergabe 
-        des Port-Dictionarys.
+        Generates Graphviz visualization ports for the pipeline by sequentially connecting its internal blocks.
+
+        @param dot The Graphviz Digraph object to draw on.
+        @param input_ports Mapping of fault types to their incoming node IDs.
+        @return An updated dictionary with the output ports of the last block in the pipeline.
         """
-        # Wir behalten den gestrichelten Rahmen für die logische Gruppierung bei
         with dot.subgraph(name=f"cluster_pipe_{id(self)}") as c:
             c.attr(label=self.name, style="dashed", color="gray80", fontcolor="gray50")
             
-            # Der "Staffelstab": Das Dictionary mit den aktuellen Ein- und Ausgängen
             current_ports = input_ports
             
             for block in self.blocks:
-                # Jeder Block erhält die Ports des Vorgängers, zeichnet seine 
-                # internen Verbindungen und gibt die neuen Ausgangs-Ports zurück.
                 current_ports = block.to_dot(c, current_ports)
         
-        # Die Pipeline gibt die Ports des allerletzten Blocks in der Kette zurück
         return current_ports

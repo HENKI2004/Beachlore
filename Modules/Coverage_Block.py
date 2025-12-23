@@ -2,8 +2,20 @@ from .Block_Interface import Block_Interface
 from .Faults import FAULTS
 
 class Coverage_Block(Block_Interface):
+    """
+    Applies diagnostic coverage (DC) to a fault type, splittingFIT rates into residual and latent components.
+    """
+
     def __init__(self, target_fault: FAULTS, dc_rate_c_or_cR: float, 
                  dc_rate_latent_cL: float = None, is_spfm: bool = True):
+        """
+        Initializes the Coverage_Block with diagnostic coverage parameters.
+
+        @param target_fault The fault type to apply coverage to.
+        @param dc_rate_c_or_cR Diagnostic coverage for residual faults (c_R).
+        @param dc_rate_latent_cL Diagnostic coverage for latent faults (c_L). If None, it is calculated based on c_R.
+        @param is_spfm Whether this block operates on the SPFM/residual path (True) or LFM path (False).
+        """
         self.target_fault = target_fault
         self.is_spfm = is_spfm 
         
@@ -16,6 +28,13 @@ class Coverage_Block(Block_Interface):
             self.c_L = 1.0 - dc_rate_c_or_cR
 
     def compute_fit(self, spfm_rates: dict, lfm_rates: dict) -> tuple[dict, dict]:
+        """
+        Transforms the input fault rate dictionaries according to the block's specific logic.
+
+        @param spfm_rates Dictionary containing current SPFM/residual fault rates.
+        @param lfm_rates Dictionary containing current LFM/latent fault rates.
+        @return A tuple of updated (spfm_rates, lfm_rates) dictionaries.
+        """
         new_spfm = spfm_rates.copy()
         new_lfm = lfm_rates.copy()
         
@@ -39,8 +58,14 @@ class Coverage_Block(Block_Interface):
         
         return new_spfm, new_lfm
     
-# Modules/Coverage_Block.py
     def to_dot(self, dot, input_ports: dict) -> dict:
+        """
+        Generates Graphviz visualization ports for the coverage block.
+
+        @param dot The Graphviz Digraph object to draw on.
+        @param input_ports Mapping of fault types to their incoming node IDs.
+        @return An updated dictionary with the output ports of this block.
+        """
         node_id = f"cov_{self.target_fault.name}_{id(self)}"
         rf_pc = (1.0 - self.c_R) * 100
         lat_pc = (1.0 - self.c_L) * 100
@@ -54,18 +79,14 @@ class Coverage_Block(Block_Interface):
         prev = input_ports.get(self.target_fault, {'rf': None, 'latent': None})
 
         if self.is_spfm:
-            # Eingang: Der rote Pfad (Residual) geht in den Block hinein
             if prev.get('rf'):
                 dot.edge(prev['rf'], node_id, color="red")
             
-            # AUSGANG: Der Block teilt den Fehler nun auf!
-            # Ab hier kommen sowohl der rote als auch der blaue Pfad aus diesem Block.
             new_ports[self.target_fault] = {
-                'rf': f"{node_id}:rf",       # Linkes Kästchen (Residual-Anteil)
-                'latent': f"{node_id}:latent" # Rechtes Kästchen (Abgedeckter/Latenter-Anteil)
+                'rf': f"{node_id}:rf",
+                'latent': f"{node_id}:latent"
             }
         else:
-            # Falls der Block auf einem latenten Pfad operiert (z.B. 2nd Order Coverage)
             if prev.get('latent'):
                 dot.edge(prev['latent'], node_id, color="blue", style="dashed")
             

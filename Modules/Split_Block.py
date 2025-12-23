@@ -1,7 +1,6 @@
 from .Block_Interface import Block_Interface
 from .Faults import FAULTS
 
-
 class Split_Block(Block_Interface):
     """
     Distributes the FIT rate of a specific fault type across multiple other fault types 
@@ -28,7 +27,7 @@ class Split_Block(Block_Interface):
 
     def compute_fit(self, spfm_rates: dict, lfm_rates: dict) -> tuple[dict, dict]:
         """
-        Transforms the input rates by redistributing the target fault's FIT rate.
+        Transforms the input fault rate dictionaries according to the block's specific logic.
 
         @param spfm_rates Dictionary containing current SPFM/residual fault rates.
         @param lfm_rates Dictionary containing current LFM/latent fault rates.
@@ -48,11 +47,16 @@ class Split_Block(Block_Interface):
         
         return new_spfm, new_lfm
     
-    # Modules/Split_Block.py
     def to_dot(self, dot, input_ports: dict) -> dict:
+        """
+        Generates Graphviz visualization ports for the split block.
+
+        @param dot The Graphviz Digraph object to draw on.
+        @param input_ports Mapping of fault types to their incoming node IDs.
+        @return An updated dictionary with the output ports of this block.
+        """
         node_id = f"split_{self.name}_{id(self)}"
         
-        # ... (HTML Label Code bleibt gleich) ...
         cells = [f'<TD PORT="p_{tf.name}" BGCOLOR="white">{p*100:.1f}%</TD>' 
                 for tf, p in self.distribution_rates.items()]
         label = f'<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0"><TR>{"".join(cells)}</TR>' \
@@ -70,14 +74,11 @@ class Split_Block(Block_Interface):
 
         for target_fault, prob in self.distribution_rates.items():
             port_ref = f"{node_id}:p_{target_fault.name}"
-            # WICHTIG: Wir holen uns die existierenden Pfade des ZIEL-Fehlers
             prev_target = input_ports.get(target_fault, {'rf': None, 'latent': None})
             
             if self.is_spfm:
-                # RF ist neu, Latent bleibt das, was der Ziel-Fehler vorher hatte
                 new_ports[target_fault] = {'rf': port_ref, 'latent': prev_target.get('latent')}
             else:
-                # Latent ist neu, RF bleibt das, was der Ziel-Fehler vorher hatte
                 new_ports[target_fault] = {'rf': prev_target.get('rf'), 'latent': port_ref}
                 
         return new_ports

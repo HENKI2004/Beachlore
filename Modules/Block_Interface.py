@@ -10,7 +10,7 @@ class Block_Interface(ABC):
     def compute_fit(self, spfm_rates: dict, lfm_rates: dict) -> tuple[dict, dict]:
         """
         Transforms the input fault rate dictionaries according to the block's specific logic.
-        
+
         @param spfm_rates Dictionary containing current SPFM/residual fault rates.
         @param lfm_rates Dictionary containing current LFM/latent fault rates.
         @return A tuple of updated (spfm_rates, lfm_rates) dictionaries.
@@ -20,7 +20,10 @@ class Block_Interface(ABC):
     @abstractmethod
     def to_dot(self, dot, input_ports: dict) -> dict:
         """
-        input_ports: { FAULTS.SBE: {'rf': 'node:p1', 'latent': 'node:p2'}, ... }
-        returns: Ein aktualisiertes Dictionary mit den Ausgangs-Ports dieses Blocks.
+        Generates Graphviz visualization ports for the block.
+
+        @param dot The Graphviz Digraph object to draw on.
+        @param input_ports Mapping of fault types to their incoming node IDs.
+        @return An updated dictionary containing the outgoing ports of this block.
         """
         pass

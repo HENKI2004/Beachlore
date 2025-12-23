@@ -8,7 +8,7 @@ class Basic_Event(Block_Interface):
 
     def __init__(self, fault_type: FAULTS, rate: float, is_spfm: bool = True):
         """
-        Initializes the Basic_Event.
+        Initializes the Basic_Event fault source.
         
         @param fault_type The type of fault (Enum) this event produces.
         @param rate The FIT rate of this basic event.
@@ -20,7 +20,7 @@ class Basic_Event(Block_Interface):
 
     def compute_fit(self, spfm_rates: dict, lfm_rates: dict) -> tuple[dict, dict]:
         """
-        Adds the FIT rate of this event to the provided rate dictionaries.
+        Transforms the input fault rate dictionaries according to the block's specific logic.
         
         @param spfm_rates Dictionary containing current SPFM/residual fault rates.
         @param lfm_rates Dictionary containing current LFM/latent fault rates.
@@ -35,23 +35,24 @@ class Basic_Event(Block_Interface):
         return new_spfm, new_lfm
     
     def to_dot(self, dot, input_ports: dict) -> dict:
-        # Nutze .name für ein saubereres Label (z.B. "SBE" statt "FAULTS.SBE")
+        """
+        Generates Graphviz visualization ports for the basic event.
+
+        @param dot The Graphviz Digraph object to draw on.
+        @param input_ports Mapping of fault types to their incoming node IDs.
+        @return An updated dictionary containing the outgoing ports of this block.
+        """
         node_id = f"be_{self.fault_type.name}_{id(self)}"
         val = self.lambda_BE[0] if isinstance(self.lambda_BE, tuple) else self.lambda_BE
         label = f"{self.fault_type.name}\n{val:.2f}"
         dot.node(node_id, label=label, shape="circle")
         
         new_ports = input_ports.copy()
-        
-        # Bestehende Ports für diesen Fehlertyp abrufen oder mit None initialisieren.
-        # Das stellt sicher, dass Pfade nur dann existieren, wenn sie eine Quelle haben.
         current_fault_ports = new_ports.get(self.fault_type, {'rf': None, 'latent': None}).copy()
         
         if self.is_spfm:
-            # Nur den Residual-Pfad (rf) auf diesen Knoten setzen
             current_fault_ports['rf'] = node_id
         else:
-            # Nur den Latenten-Pfad (latent) auf diesen Knoten setzen
             current_fault_ports['latent'] = node_id
             
         new_ports[self.fault_type] = current_fault_ports
