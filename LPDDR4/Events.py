@@ -21,9 +21,9 @@ class Events(Base):
     def __init__(self, name: str):
         DRAM_FIT = 2300.0
 
-        self.FAULT_SBE = 0.7 * DRAM_FIT,
-        self.FAULT_DBE = 0.0748 * DRAM_FIT,
-        self.FAULT_MBE = 0.0748 * DRAM_FIT,
+        self.FAULT_SBE = 0.7 * DRAM_FIT
+        self.FAULT_DBE = 0.0748 * DRAM_FIT
+        self.FAULT_MBE = 0.0748 * DRAM_FIT
         self.FAULT_WD = 0.0748 * DRAM_FIT
         
         super().__init__(name)
