@@ -64,47 +64,72 @@ class Sum_Block(Block_Interface):
         with dot.subgraph(name=f"cluster_sum_{id(self)}") as c:
             c.attr(label=self.name, style="dotted", color="gray80", fontcolor="gray50")
             
-            for block in self.blocks if hasattr(self, 'blocks') else self.sub_blocks:
-                res_ports = block.to_dot(c, input_ports)
-                for fault, ports in res_ports.items():
-                    in_p = input_ports.get(fault, {})
-                    if ports.get('rf') and ports['rf'] != in_p.get('rf'):
-                        rf_collect[fault].append(ports['rf'])
-                    if ports.get('latent') and ports['latent'] != in_p.get('latent'):
-                        lat_collect[fault].append(ports['latent'])
-            
-            final_ports = {}
-            all_faults = set(input_ports.keys()) | set(rf_collect.keys()) | set(lat_collect.keys())
-            
-            for fault in all_faults:
-                in_p = input_ports.get(fault, {'rf': None, 'latent': None})
-                
-                srcs_rf = list(set(rf_collect[fault]))
-                if in_p['rf'] and fault not in consumed_rf:
-                    srcs_rf.append(in_p['rf'])
-                
-                res_rf = None
-                if len(srcs_rf) > 1:
-                    j_id = f"sum_{fault.name}_rf_{id(self)}"
-                    c.node(j_id, label="+", shape="circle", width="0.3", fixedsize="true", color="red", fontcolor="red", fontsize="10")
-                    for s in srcs_rf: c.edge(s, j_id, color="red")
-                    res_rf = j_id
-                elif len(srcs_rf) == 1:
-                    res_rf = srcs_rf[0]
+            with c.subgraph() as logic_rank:
+                logic_rank.attr(rank='same')
 
-                srcs_lat = list(set(lat_collect[fault]))
-                if in_p['latent'] and fault not in consumed_lat:
-                    srcs_lat.append(in_p['latent'])
+                for block in self.blocks if hasattr(self, 'blocks') else self.sub_blocks:
+                    res_ports = block.to_dot(c, input_ports)
+                    for fault, ports in res_ports.items():
+                        in_p = input_ports.get(fault, {})
+                        if ports.get('rf') and ports['rf'] != in_p.get('rf'):
+                            rf_collect[fault].append(ports['rf'])
+                        if ports.get('latent') and ports['latent'] != in_p.get('latent'):
+                            lat_collect[fault].append(ports['latent'])
                 
-                res_lat = None
-                if len(srcs_lat) > 1:
-                    j_id = f"sum_{fault.name}_lat_{id(self)}"
-                    c.node(j_id, label="+", shape="circle", width="0.3", fixedsize="true", color="blue", fontcolor="blue", fontsize="10")
-                    for s in srcs_lat: c.edge(s, j_id, color="blue", style="dashed")
-                    res_lat = j_id
-                elif len(srcs_lat) == 1:
-                    res_lat = srcs_lat[0]
+                final_ports = {}
+                all_faults = set(input_ports.keys()) | set(rf_collect.keys()) | set(lat_collect.keys())
                 
-                final_ports[fault] = {'rf': res_rf, 'latent': res_lat}
+            with c.subgraph() as sum_rank:    
+                for fault in all_faults:
+                    in_p = input_ports.get(fault, {'rf': None, 'latent': None})
+                    # Die Gruppe wird anhand des Fehlertyps definiert (z.B. group_SBE)
+                    # Das stellt sicher, dass alle SBE-Knoten auf einer vertikalen Linie bleiben.
                     
-        return final_ports
+                    # --- Residual Path (RF) Summation ---
+                    srcs_rf = list(set(rf_collect[fault]))
+                    if in_p['rf'] and fault not in consumed_rf:
+                        srcs_rf.append(in_p['rf'])
+                    
+                    res_rf = None
+                    if len(srcs_rf) > 1:
+                        j_id = f"sum_{fault.name}_rf_{id(self)}"
+                        # 'group' zwingt den Knoten in die vertikale Lane des Fehlers
+                        group_id = f"lane_{fault.name}_rf"
+
+                        dot.node(j_id, label="+", shape="circle", width="0.3", 
+                                fixedsize="true", color="red", fontcolor="red", 
+                                fontsize="10", group=group_id)
+                        
+                        for s in srcs_rf: 
+                            # Pfeil tritt unten (:s) in den Plus-Knoten ein
+                            dot.edge(f"{s}", f"{j_id}:s", color="red",minlen="2")
+                        
+                        # Der Ausgangspfad verlässt den Knoten oben (:n)
+                        res_rf = f"{j_id}:n"
+                    elif len(srcs_rf) == 1:
+                        res_rf = srcs_rf[0]
+
+                    # --- Latent Path (L) Summation ---
+                    srcs_lat = list(set(lat_collect[fault]))
+                    if in_p['latent'] and fault not in consumed_lat:
+                        srcs_lat.append(in_p['latent'])
+                    
+                    res_lat = None
+                    if len(srcs_lat) > 1:
+                        j_id = f"sum_{fault.name}_lat_{id(self)}"
+                        # Auch der latente Plus-Knoten gehört in dieselbe Lane
+                        group_id = f"lane_{fault.name}_latent"
+                        dot.node(j_id, label="+", shape="circle", width="0.3", 
+                                fixedsize="true", color="blue", fontcolor="blue", 
+                                fontsize="10", group=group_id)
+                        
+                        for s in srcs_lat: 
+                            dot.edge(f"{s}", f"{j_id}:s", color="blue", minlen="2")
+                        
+                        res_lat = f"{j_id}:n"
+                    elif len(srcs_lat) == 1:
+                        res_lat = srcs_lat[0]
+                    
+                    final_ports[fault] = {'rf': res_rf, 'latent': res_lat}
+                
+            return final_ports

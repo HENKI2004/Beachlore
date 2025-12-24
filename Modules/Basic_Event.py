@@ -45,15 +45,22 @@ class Basic_Event(Block_Interface):
         node_id = f"be_{self.fault_type.name}_{id(self)}"
         val = self.lambda_BE[0] if isinstance(self.lambda_BE, tuple) else self.lambda_BE
         label = f"{self.fault_type.name}\n{val:.2f}"
-        dot.node(node_id, label=label, shape="circle")
+
+        path_type = 'rf' if self.is_spfm else 'latent'
+        #group_id = f"lane_{self.fault_type.name}_{path_type}"
+
+        dot.node(node_id, label=label, shape="circle", 
+                 width="1.0", height="1.0", fixedsize="true", 
+                 #group=group_id
+                 )
         
         new_ports = input_ports.copy()
         current_fault_ports = new_ports.get(self.fault_type, {'rf': None, 'latent': None}).copy()
         
         if self.is_spfm:
-            current_fault_ports['rf'] = node_id
+            current_fault_ports['rf'] = f"{node_id}:n"
         else:
-            current_fault_ports['latent'] = node_id
+            current_fault_ports['latent'] = f"{node_id}:n"
             
         new_ports[self.fault_type] = current_fault_ports
         return new_ports

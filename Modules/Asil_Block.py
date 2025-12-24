@@ -102,13 +102,13 @@ class ASIL_Block:
                 c.node(rf_sum_id, label="+", shape="circle", width="0.3", 
                        fixedsize="true", color="red", fontcolor="red", fontsize="10")
                 for s in all_rf_srcs:
-                    dot.edge(s, rf_sum_id, color="red")
+                    dot.edge(s, rf_sum_id, color="red",minlen="2")
 
             if all_lat_srcs:
                 c.node(lat_sum_id, label="+", shape="circle", width="0.3", 
                        fixedsize="true", color="blue", fontcolor="blue", fontsize="10")
                 for s in all_lat_srcs:
-                    dot.edge(s, lat_sum_id, color="blue", style="dashed")
+                    dot.edge(s, lat_sum_id, color="blue", minlen="2")
 
             with c.subgraph() as s:
                 s.attr(rank='sink')
@@ -118,6 +118,6 @@ class ASIL_Block:
             if all_rf_srcs:
                 c.edge(rf_sum_id, node_id, color="red", penwidth="2")
             if all_lat_srcs:
-                c.edge(lat_sum_id, node_id, color="blue", style="dashed", penwidth="2")
+                c.edge(lat_sum_id, node_id, color="blue", penwidth="2")
                 
         return {}

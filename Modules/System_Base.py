@@ -53,8 +53,12 @@ class System_Base(ABC):
             filename = f"output_{self.name}"
             
         dot = Digraph(comment=self.name)
-        dot.attr(rankdir='BT', splines='ortho', newrank='true', nodesep='0.6', ranksep='0.8')
+        dot.attr(rankdir='BT', splines='line', newrank='true', nodesep='1.0', ranksep='0.6')
+        # line looks fine 
+    
 
+        dot.edge_attr.update(arrowhead='none')
+        
         final_ports = self.system_layout.to_dot(dot, {})
         self.asil_block.to_dot(dot, final_ports)
 

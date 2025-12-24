@@ -55,21 +55,30 @@ class Base(Block_Interface, ABC):
             
             internal_in_ports = {}
             with c.subgraph() as s:
-                s.attr(rank='source')
+                s.attr(rank='same')
                 for fault, ports in input_ports.items():
                     for path_type in ['rf', 'latent']:
                         if ports.get(path_type):
-                            label = f"{fault.name}\n({'RF' if path_type=='rf' else 'L'})"
+                            label = f"{fault.name}"
                             in_id = f"in_{self.name}_{fault.name}_{path_type}_{id(self)}"
                             color = "red" if path_type == 'rf' else "blue"
-                            style = "solid" if path_type == 'rf' else "dashed"
+                            style = "solid"
                             
-                            s.node(in_id, label=label, shape="box", style="filled", fillcolor="white")
-                            dot.edge(ports[path_type], in_id, color=color, style=style)
+                            s.node(in_id, 
+                                label=label, 
+                                shape="box", 
+                                style="filled", 
+                                fillcolor="white", 
+                                width="1",      
+                                height="1",   
+                                fixedsize="true",
+                                group=f"lane_{fault.name}_{path_type}")
+                            
+                            dot.edge(ports[path_type], f"{in_id}:s", color=color, style=style)
                             
                             if fault not in internal_in_ports: 
                                 internal_in_ports[fault] = {'rf': None, 'latent': None}
-                            internal_in_ports[fault][path_type] = in_id
+                            internal_in_ports[fault][path_type] = f"{in_id}:n"
 
             res_ports = self.root_block.to_dot(c, internal_in_ports) if self.root_block else internal_in_ports
 
@@ -80,13 +89,21 @@ class Base(Block_Interface, ABC):
                     final_out_ports[fault] = {'rf': None, 'latent': None}
                     for path_type in ['rf', 'latent']:
                         if ports.get(path_type):
-                            label = f"{fault.name}\n({'RF' if path_type=='rf' else 'L'})"
+                            label = f"{fault.name}"
                             out_id = f"out_{self.name}_{fault.name}_{path_type}_{id(self)}"
                             color = "red" if path_type == 'rf' else "blue"
-                            style = "solid" if path_type == 'rf' else "dashed"
+                            style = "solid"
                             
-                            s.node(out_id, label=label, shape="box", style="filled", fillcolor="white")
-                            c.edge(ports[path_type], out_id, color=color, style=style)
-                            final_out_ports[fault][path_type] = out_id
+                            s.node(out_id, 
+                                label=label, 
+                                shape="box", 
+                                style="filled", 
+                                fillcolor="white", 
+                                width="1",      
+                                height="1",   
+                                fixedsize="true",
+                                group=f"lane_{fault.name}_{path_type}")
+                            c.edge(ports[path_type], f"{out_id}:s", color=color, style=style, minlen='2')
+                            final_out_ports[fault][path_type] = f"{out_id}:n"
                     
         return final_out_ports
