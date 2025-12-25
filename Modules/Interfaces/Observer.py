@@ -8,7 +8,6 @@
 
 from abc import ABC, abstractmethod
 
-
 class SafetyObserver(ABC):
     """
     Abstract base class for all observers in the safety system.
@@ -16,15 +15,17 @@ class SafetyObserver(ABC):
     """
 
     @abstractmethod
-    def on_block_computed(self, block, input_ports: dict, spfm_in: dict, lfm_in: dict, spfm_out: dict, lfm_out: dict):
+    def on_block_computed(self, block, input_ports: dict, spfm_in: dict, lfm_in: dict, spfm_out: dict, lfm_out: dict) -> dict:
         """
         Triggered after a hardware block completes its FIT rate transformation.
+        The observer draws the block and returns the new node IDs (ports).
 
-        @param block: The instance of the logic block (defines shape and type).
-        @param input_ports: Mapping of fault types to incoming node IDs (defines edge origins).
-        @param spfm_in: Dictionary of incoming residual/SPFM FIT rates (Red path logic).
-        @param lfm_in: Dictionary of incoming latent/LFM FIT rates (Blue path logic).
-        @param spfm_out: Updated dictionary of outgoing residual/SPFM FIT rates.
-        @param lfm_out: Updated dictionary of outgoing latent/LFM FIT rates.
+        @param block The instance of the logic block (defines shape and type).
+        @param input_ports Mapping of fault types to incoming node IDs (defines edge origins).
+        @param spfm_in Dictionary of incoming residual/SPFM FIT rates (Red path logic).
+        @param lfm_in Dictionary of incoming latent/LFM FIT rates (Blue path logic).
+        @param spfm_out Updated dictionary of outgoing residual/SPFM FIT rates.
+        @param lfm_out Updated dictionary of outgoing latent/LFM FIT rates.
+        @return A dictionary containing the newly created output ports (node IDs).
         """
         pass

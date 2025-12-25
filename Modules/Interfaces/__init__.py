@@ -8,7 +8,8 @@
 
 #___ Interfaces ___
 from .Block_Interface import Block_Interface
-from .Observer import Observer
+from .Observer import SafetyObserver
+from .Observable_Interface import Observable_Interface
 
 #___ Enums ___
 from .Faults import FAULTS
