@@ -1,3 +1,13 @@
+# 
+#  @file Pipeline_Block.py
+#  @author Linus Held 
+#  @brief Executes a sequence of logic blocks for FIT rate transformations.
+#  @version 2.0
+#  @date 2025-12-25
+# 
+#  @copyright Copyright (c) 2025 Linus Held. All rights reserved.
+# 
+
 from ..Interfaces.Block_Interface import Block_Interface
 
 class Pipeline_Block(Block_Interface):
@@ -30,21 +40,3 @@ class Pipeline_Block(Block_Interface):
             current_spfm, current_lfm = block.compute_fit(current_spfm, current_lfm)
 
         return current_spfm, current_lfm
-    
-    def to_dot(self, dot, input_ports: dict) -> dict:
-        """
-        Generates Graphviz visualization ports for the pipeline by sequentially connecting its internal blocks.
-
-        @param dot The Graphviz Digraph object to draw on.
-        @param input_ports Mapping of fault types to their incoming node IDs.
-        @return An updated dictionary with the output ports of the last block in the pipeline.
-        """
-        with dot.subgraph(name=f"cluster_pipe_{id(self)}") as c:
-            c.attr(label=self.name, style="dashed", color="gray80", fontcolor="gray50")
-            
-            current_ports = input_ports
-            
-            for block in self.blocks:
-                current_ports = block.to_dot(c, current_ports)
-        
-        return current_ports

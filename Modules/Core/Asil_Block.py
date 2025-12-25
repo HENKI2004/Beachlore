@@ -1,3 +1,13 @@
+# 
+#  @file Asil_Block.py
+#  @author Linus Held 
+#  @brief Evaluates final system metrics and determines the achieved ASIL level.
+#  @version 2.0
+#  @date 2025-12-25
+# 
+#  @copyright Copyright (c) 2025 Linus Held. All rights reserved.
+# 
+
 from ..Interfaces.Faults import FAULTS
 
 class ASIL_Block:
@@ -5,6 +15,8 @@ class ASIL_Block:
     Evaluates final system metrics and determines the achieved ASIL level according to ISO 26262 requirements.
     """
 
+    ## Standardized ASIL requirements
+    # Format: [Min SPFM, Min LFM, Max Residual FIT]
     ASIL_REQUIREMENTS = {
         "D": [0.99, 0.90, 10.0],
         "C": [0.97, 0.80, 100.0],
@@ -22,12 +34,12 @@ class ASIL_Block:
 
     def _determine_asil(self, spfm: float, lfm: float, lambda_rf_sum: float) -> str:
         """
-        Determines the achieved ASIL level based on calculated metrics.
+        Determines the achieved ASIL level based on calculated metrics according to ISO 26262.
 
         @param spfm Single-Point Fault Metric value (0.0 to 1.0).
         @param lfm Latent Fault Metric value (0.0 to 1.0).
         @param lambda_rf_sum Total sum of residual FIT rates.
-        @return A string representing the achieved ASIL level or QM.
+        @return A string representing the achieved ASIL level (e.g., "ASIL D") or "QM".
         """
         for asil_level in ["D", "C", "B"]:
             req = self.ASIL_REQUIREMENTS[asil_level]
@@ -72,52 +84,3 @@ class ASIL_Block:
             'Lambda_RF_Sum': lambda_rf_sum,
             'ASIL_Achieved': achieved_asil
         }
-    
-    def to_dot(self, dot, input_ports: dict) -> dict:
-        """
-        Aggregates all SPFM and LFM paths into central junction nodes and 
-        places the calculation block at the top of the graph.
-
-        @param dot The Graphviz Digraph object to draw on.
-        @param input_ports Mapping of fault types to their incoming node IDs.
-        @return An empty dictionary as this is the final block in the chain.
-        """
-        node_id = f"asil_{id(self)}"
-        
-        all_rf_srcs = []
-        all_lat_srcs = []
-        for fault, ports in input_ports.items():
-            if ports.get('rf'):
-                all_rf_srcs.append(ports['rf'])
-            if ports.get('latent'):
-                all_lat_srcs.append(ports['latent'])
-
-        with dot.subgraph(name=f"cluster_final_eval_{id(self)}") as c:
-            c.attr(label="Final ASIL Evaluation", style="dashed", color="gray80", fontcolor="gray50")
-            
-            rf_sum_id = f"final_sum_rf_{id(self)}"
-            lat_sum_id = f"final_sum_lat_{id(self)}"
-            
-            if all_rf_srcs:
-                c.node(rf_sum_id, label="+", shape="circle", width="0.3", 
-                       fixedsize="true", color="red", fontcolor="red", fontsize="10")
-                for s in all_rf_srcs:
-                    dot.edge(s, rf_sum_id, color="red",minlen="2")
-
-            if all_lat_srcs:
-                c.node(lat_sum_id, label="+", shape="circle", width="0.3", 
-                       fixedsize="true", color="blue", fontcolor="blue", fontsize="10")
-                for s in all_lat_srcs:
-                    dot.edge(s, lat_sum_id, color="blue", minlen="2")
-
-            with c.subgraph() as s:
-                s.attr(rank='sink')
-                s.node(node_id, label="Calculate ASIL Metrics", shape="rectangle", 
-                       style="filled", fillcolor="white", penwidth="2")
-
-            if all_rf_srcs:
-                c.edge(rf_sum_id, node_id, color="red", penwidth="2")
-            if all_lat_srcs:
-                c.edge(lat_sum_id, node_id, color="blue", penwidth="2")
-                
-        return {}
