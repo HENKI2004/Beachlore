@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from graphviz import Digraph
-from .Pipeline_Block import Pipeline_Block
-from .Sum_Block import Sum_Block
-from .Asil_Block import ASIL_Block
+from .Core.Pipeline_Block import Pipeline_Block
+from .Core.Sum_Block import Sum_Block
+from .Core.Asil_Block import ASIL_Block
 
 class System_Base(ABC):
     """

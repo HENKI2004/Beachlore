@@ -1,5 +1,5 @@
-from .Block_Interface import Block_Interface
-from .Faults import FAULTS
+from ..Interfaces.Block_Interface import Block_Interface
+from ..Interfaces.Faults import FAULTS
 from collections import defaultdict
 from .Coverage_Block import Coverage_Block
 from .Split_Block import Split_Block

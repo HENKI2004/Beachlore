@@ -6,9 +6,9 @@ project_root = os.path.dirname(os.path.dirname(__file__))
 if project_root not in sys.path:
     sys.path.append(project_root)
 
-from Modules.Basic_Event import Basic_Event
-from Modules.Asil_Block import ASIL_Block
-from Modules.Base import FAULTS
+from Modules.Core.Basic_Event import Basic_Event
+from Modules.Core.Asil_Block import ASIL_Block
+from Modules.Core.Base import FAULTS
 
 # --- Import LPDDR5 Komponenten ---
 from SEC import SEC

@@ -1,5 +1,5 @@
-from .Block_Interface import Block_Interface
-from .Faults import FAULTS
+from ..Interfaces.Block_Interface import Block_Interface
+from ..Interfaces.Faults import FAULTS
 
 class Basic_Event(Block_Interface):
     """

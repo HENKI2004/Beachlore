@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from .Block_Interface import Block_Interface
+from ..Interfaces.Block_Interface import Block_Interface
 
 class Base(Block_Interface, ABC):
     """

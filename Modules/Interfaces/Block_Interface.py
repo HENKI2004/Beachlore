@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from .Observer import SafetyObserver
 
 class Block_Interface(ABC):
     """
@@ -14,16 +15,5 @@ class Block_Interface(ABC):
         @param spfm_rates Dictionary containing current SPFM/residual fault rates.
         @param lfm_rates Dictionary containing current LFM/latent fault rates.
         @return A tuple of updated (spfm_rates, lfm_rates) dictionaries.
-        """
-        pass
-
-    @abstractmethod
-    def to_dot(self, dot, input_ports: dict) -> dict:
-        """
-        Generates Graphviz visualization ports for the block.
-
-        @param dot The Graphviz Digraph object to draw on.
-        @param input_ports Mapping of fault types to their incoming node IDs.
-        @return An updated dictionary containing the outgoing ports of this block.
         """
         pass

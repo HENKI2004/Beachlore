@@ -1,4 +1,4 @@
-from .Block_Interface import Block_Interface
+from ..Interfaces.Block_Interface import Block_Interface
 
 class Pipeline_Block(Block_Interface):
     """

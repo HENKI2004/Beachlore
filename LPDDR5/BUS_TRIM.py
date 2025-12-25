@@ -1,4 +1,4 @@
-from Modules.Base import Base,FAULTS
+from Modules.Core.Base import Base,FAULTS
 
 class BUS_TRIM(Base):
 

@@ -1,4 +1,4 @@
-from Modules.Base import Base,FAULTS
+from Modules.Core.Base import Base,FAULTS
 
 class SEC_DED_TRIM(Base):
 
