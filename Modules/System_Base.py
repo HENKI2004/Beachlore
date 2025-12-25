@@ -1,20 +1,31 @@
+# 
+#  @file System_Base.py
+#  @author Linus Held 
+#  @brief Orchestrates the safety analysis and coordinates visualization via observers.
+#  @version 2.0
+#  @date 2025-12-25
+# 
+#  @copyright Copyright (c) 2025 Linus Held. All rights reserved.
+# 
+
 from abc import ABC, abstractmethod
-from graphviz import Digraph
-from .Core.Pipeline_Block import Pipeline_Block
-from .Core.Sum_Block import Sum_Block
-from .Core.Asil_Block import ASIL_Block
+from .Visualization import SafetyVisualizer
+from .Core import Observable_Block
+from .Core import ASIL_Block
 
 class System_Base(ABC):
     """
-    Abstract base class for a safety system model, coordinating fault calculation and visualization.
+    Abstract base class for a safety system model. 
+    It manages the system layout, triggers FIT rate calculations, and 
+    handles the generation of architectural visualizations.
     """
 
     def __init__(self, name: str, total_fit: float):
         """
-        Initializes the system base.
+        Initializes the system orchestrator.
 
-        @param name The descriptive name of the system.
-        @param total_fit The total FIT rate of the entire system.
+        @param name The descriptive name of the system (e.g., "LPDDR4_System").
+        @param total_fit The total FIT rate used as the baseline for metric calculations.
         """
         self.name = name
         self.total_fit = total_fit
@@ -25,14 +36,15 @@ class System_Base(ABC):
     @abstractmethod
     def configure_system(self):
         """
-        Defines the internal structure (Pipeline or Sum blocks) of the system.
-        Must be implemented by subclasses to specify how components are connected.
+        Abstract method to define the internal hardware structure.
+        Must be implemented by subclasses to set the self.system_layout.
         """
         pass
 
-    def run_analysis(self):
+    def run_analysis(self) -> dict:
         """
-        Performs the mathematical FIT calculation across the defined system layout.
+        Performs a pure mathematical FIT calculation across the system.
+        No visualization is triggered during this call.
 
         @return A dictionary containing calculated metrics (SPFM, LFM, ASIL level).
         """
@@ -43,24 +55,31 @@ class System_Base(ABC):
         
         return self.asil_block.compute_metrics(self.total_fit, final_spfm, final_lfm)
 
-    def generate_pdf(self, filename: str = None):
+    def generate_pdf(self, filename: str = None) -> dict:
         """
-        Generates a PDF visualization of the entire system architecture.
+        Executes the analysis while simultaneously generating a PDF visualization.
+        Uses the Observer Pattern to decouple logic from Graphviz commands.
 
         @param filename Optional name for the output file. Defaults to "output_<name>".
+        @return The final system metrics dictionary.
         """
         if filename is None:
             filename = f"output_{self.name}"
             
-        dot = Digraph(comment=self.name)
-        dot.attr(rankdir='BT', splines='line', newrank='true', nodesep='1.0', ranksep='0.6')
-        # line looks fine 
-    
-
-        dot.edge_attr.update(arrowhead='none')
+        visualizer = SafetyVisualizer(self.name)
         
-        final_ports = self.system_layout.to_dot(dot, {})
-        self.asil_block.to_dot(dot, final_ports)
+        observable_layout = Observable_Block(self.system_layout)
+        observable_layout.attach(visualizer)
+        
+        final_spfm, final_lfm, last_ports = observable_layout.run({}, {}, {})
+        
+        visualizer.on_block_computed(
+            self.asil_block, 
+            last_ports, 
+            final_spfm, final_lfm, 
+            final_spfm, final_lfm
+        )
 
-        dot.render(filename, view=True, format='pdf')
-        print(f"System visualization saved as {filename}.pdf")
+        visualizer.render(filename)
+        
+        return self.asil_block.compute_metrics(self.total_fit, final_spfm, final_lfm)

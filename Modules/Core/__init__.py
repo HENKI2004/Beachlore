@@ -14,3 +14,4 @@ from .Pipeline_Block import Pipeline_Block
 from .Split_Block import Split_Block
 from .Sum_Block import Sum_Block
 from .Transformation_Block import Transformation_Block
+from .Observable_Block import Observable_Block
