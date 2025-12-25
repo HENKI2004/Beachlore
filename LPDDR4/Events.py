@@ -1,9 +1,21 @@
-from Modules import Base, FAULTS, Sum_Block, Basic_Event
+# 
+#  @file Events.py
+#  @author Linus Held 
+#  @brief Primary failure rate source component for LPDDR4 DRAM.
+#  @version 2.0
+#  @date 2025-12-25
+# 
+#  @copyright Copyright (c) 2025 Linus Held. All rights reserved.
+# 
+
+from Modules.Core import Base, Sum_Block, Basic_Event
+from Modules.Interfaces import FAULTS
 
 class Events(Base):
     """
-    Primary failure rate source component for LPDDR4 DRAM.
-    This module initializes the baseline failure rates for SBE, DBE, MBE, and WD.
+    Initializes the baseline DRAM failure rates.
+    This module acts as a primary source for SBE, DBE, MBE, and WD faults.
+    As a pure source component, it uses a Sum_Block to inject all rates in parallel.
     """
 
     def __init__(self, name: str):
@@ -24,6 +36,7 @@ class Events(Base):
     def configure_blocks(self):
         """
         Configures the internal block structure by injecting failure rates as basic events.
+        Uses a Sum_Block as these faults occur independently and in parallel on the hardware level.
         """
         self.root_block = Sum_Block(self.name, [
             Basic_Event(FAULTS.SBE, self.fault_sbe, is_spfm=True),

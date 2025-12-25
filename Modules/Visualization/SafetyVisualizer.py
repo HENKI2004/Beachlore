@@ -10,7 +10,8 @@ from graphviz import Digraph
 from ..Interfaces import SafetyObserver
 from ..Core import (
     Split_Block, Coverage_Block, Basic_Event, 
-    Asil_Block, Pipeline_Block, Sum_Block, Transformation_Block
+    ASIL_Block, Pipeline_Block, Sum_Block, Transformation_Block,
+    Base
 )
 
 class SafetyVisualizer(SafetyObserver):
@@ -90,7 +91,7 @@ class SafetyVisualizer(SafetyObserver):
         @param block The block instance for which the ID is generated.
         @return A unique string identifier for the node.
         """
-        base_name = block.fault_type.name if hasattr(block, 'fault_type') else block.name
+        base_name = getattr(block, 'name', None) or getattr(block, 'fault_type', getattr(block, 'target_fault', getattr(block, 'fault_to_split', None))).name
         return f"{prefix}{base_name}_{id(block)}"
 
     def _get_lane_id(self, fault_name: str, path_type: str) -> str:
@@ -173,7 +174,7 @@ class SafetyVisualizer(SafetyObserver):
             return self._draw_split_block(block, input_ports, spfm_out, lfm_out)
         elif isinstance(block, Coverage_Block):
             return self._draw_coverage_block(block, input_ports, spfm_out, lfm_out)
-        elif isinstance(block, Asil_Block):
+        elif isinstance(block, ASIL_Block):
             return self._draw_asil_block(block, input_ports, spfm_out, lfm_out)
         elif isinstance(block, Pipeline_Block):
             return self._draw_pipeline_block(block, input_ports, spfm_in, lfm_in)
@@ -181,6 +182,10 @@ class SafetyVisualizer(SafetyObserver):
             return self._draw_sum_block(block, input_ports, spfm_out, lfm_out)
         elif isinstance(block, Transformation_Block):
             return self._draw_transformation_block(block, input_ports, spfm_out, lfm_out)
+        elif isinstance(block, Base):
+            return self.on_block_computed(
+                block.root_block, input_ports, spfm_in, lfm_in, spfm_out, lfm_out
+            )
         
         return input_ports
 
@@ -311,7 +316,7 @@ class SafetyVisualizer(SafetyObserver):
         rf_percent = (1.0 - block.c_R) * 100
         lat_percent = (1.0 - block.c_L) * 100
         
-        cell_width = int(self.BLOCK_WIDTH_PIXEL) // 2
+        cell_width = int(self.BLOCK_WIDTH_PIXEL) / 2
         
         label = f'''<
         <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" WIDTH="{self.BLOCK_WIDTH_PIXEL}" HEIGHT="{self.BLOCK_HEIGHT_PIXEL}" FIXEDSIZE="{self.TRUE}">
