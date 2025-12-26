@@ -1,0 +1,75 @@
+"""Applies diagnostic coverage (DC) to fault rates."""
+
+# Copyright (c) 2025 Linus Held. All rights reserved.
+
+from typing import Optional
+
+from ..interfaces import BlockInterface, FaultType
+
+
+class CoverageBlock(BlockInterface):
+    """Applies diagnostic coverage (DC) to a fault type.
+
+    Splits FIT rates into residual and latent components based on the defined
+    coverage values (c_R, c_L).
+    """
+
+    def __init__(
+        self,
+        target_fault: FaultType,
+        dc_rate_c_or_cR: float,
+        dc_rate_latent_cL: Optional[float] = None,
+        is_spfm: bool = True,
+    ):
+        """Initializes the CoverageBlock with specific diagnostic coverage parameters.
+
+        Args:
+            target_fault (FaultType): The fault type (Enum) to which coverage is applied.
+            dc_rate_c_or_cR (float): The diagnostic coverage for residual faults
+                (typically denoted as K_DC or c_R).
+            dc_rate_latent_cL (Optional[float]): Optional specific coverage for latent
+                faults (c_L). If None, standard ISO 26262 logic (1 - c_R) is assumed.
+            is_spfm (bool, optional): Indicates if this block processes the SPFM/residual
+                path. Defaults to True.
+        """
+        self.target_fault = target_fault
+        self.is_spfm = is_spfm
+        if dc_rate_latent_cL is not None:
+            self.c_R = dc_rate_c_or_cR
+            self.c_L = dc_rate_latent_cL
+        else:
+            self.c_R = dc_rate_c_or_cR
+            self.c_L = 1.0 - dc_rate_c_or_cR
+
+    def compute_fit(self, spfm_rates: dict[FaultType, float], lfm_rates: dict[FaultType, float]) -> tuple[dict[FaultType, float], dict[FaultType, float]]:
+        """Transforms the input fault rate dictionaries by applying diagnostic coverage logic.
+
+        Args:
+            spfm_rates (dict[FaultType, float]): Current residual failure rates.
+            lfm_rates (dict[FaultType, float]): Current latent failure rates.
+
+        Returns:
+            tuple[dict[FaultType, float], dict[FaultType, float]]: A tuple containing:
+                - Updated SPFM rates dictionary.
+                - Updated LFM rates dictionary.
+        """
+        new_spfm = spfm_rates.copy()
+        new_lfm = lfm_rates.copy()
+
+        if self.is_spfm:
+            if self.target_fault in new_spfm:
+                lambda_in = new_spfm.pop(self.target_fault)
+                lambda_rf = lambda_in * (1.0 - self.c_R)
+                if lambda_rf > 0:
+                    new_spfm[self.target_fault] = new_spfm.get(self.target_fault, 0.0) + lambda_rf
+                lambda_mpf_l = lambda_in * (1.0 - self.c_L)
+                if lambda_mpf_l > 0:
+                    new_lfm[self.target_fault] = new_lfm.get(self.target_fault, 0.0) + lambda_mpf_l
+        else:
+            if self.target_fault in new_lfm:
+                lambda_in = new_lfm.pop(self.target_fault)
+                lambda_rem = lambda_in * (1.0 - self.c_R)
+                if lambda_rem > 0:
+                    new_lfm[self.target_fault] = lambda_rem
+
+        return new_spfm, new_lfm
