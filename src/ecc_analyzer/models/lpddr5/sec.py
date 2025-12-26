@@ -1,23 +1,59 @@
-from Modules.Core.Base import FAULTS, Base
+"""Component for Single Error Correction (SEC) in LPDDR5 architectures."""
+
+# Copyright (c) 2025 Linus Held. All rights reserved.
+
+from ...core import Base, BasicEvent, CoverageBlock, SplitBlock, SumBlock
+from ...interfaces import FaultType
 
 
-class SEC(Base):
-    def __init__(self, name: str, spfm_input: dict, lfm_input):
-        self.SBE_DC_RESIDUAL = 1.0
-        self.SBE_DC_LATENT = 0.0
+class Sec(Base):
+    """Component for Single Error Correction (SEC) in LPDDR5.
 
-        self.DBE_TO_DBE_P = 0.83
-        self.DBE_TO_TBE_P = 0.17
-        self.SB_SCOURCE = 0.1
+    This module handles SBE coverage (correcting single bit errors) and redistributes
+    DBE failure rates (Double Bit Errors splitting into TBE). It also introduces
+    a latent Single Bit (SB) fault source.
+    """
 
-        super().__init__(name, spfm_input, lfm_input)
+    def __init__(self, name: str):
+        """Initializes the SEC component.
+
+        Args:
+            name (str): The descriptive name of the component.
+        """
+        self.sbe_dc_residual = 1.0
+        self.sbe_dc_latent = 0.0
+
+        self.dbe_to_dbe_p = 0.83
+        self.dbe_to_tbe_p = 0.17
+
+        self.sb_source = 0.1
+
+        super().__init__(name)
 
     def configure_blocks(self):
-        # --- LFM Quellen ---
-        self.lfm_source_blocks[FAULTS.SB] = self.BasicEvent(FAULTS.SB, self.SB_SCOURCE)
+        """Configures the root block.
 
-        # --- SPFM Coverage Blöcke ---
-        self.spfm_coverage_blocks[FAULTS.SBE] = self.CoverageBlock(FAULTS.SBE, self.SBE_DC_RESIDUAL, self.SBE_DC_LATENT)
-
-        # --- SPFM Split Blöcke ---
-        self.spfm_split_blocks[FAULTS.DBE] = self.SplitBlock(FAULTS.DBE, {FAULTS.DBE: self.DBE_TO_DBE_P, FAULTS.TBE: self.DBE_TO_TBE_P})
+        Combines latent fault injection (SB) with parallel processing of incoming
+        SBE (Coverage) and DBE (Split) faults using a SumBlock.
+        """
+        self.root_block = SumBlock(
+            self.name,
+            [
+                BasicEvent(FaultType.SB, self.sb_source, is_spfm=False),
+                CoverageBlock(
+                    FaultType.SBE,
+                    self.sbe_dc_residual,
+                    dc_rate_latent_cL=self.sbe_dc_latent,
+                    is_spfm=True,
+                ),
+                SplitBlock(
+                    "DBE_Split",
+                    FaultType.DBE,
+                    {
+                        FaultType.DBE: self.dbe_to_dbe_p,
+                        FaultType.TBE: self.dbe_to_tbe_p,
+                    },
+                    is_spfm=True,
+                ),
+            ],
+        )

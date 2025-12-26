@@ -1,10 +1,8 @@
-#  @file SafetyVisualizer.py
-#  @author Linus Held
-#  @brief Implementation of the Graphviz-based safety observer.
-#  @version 1.0
-#  @date 2025-12-25
-#
-#   @copyright Copyright (c) 2025 Linus Held. All rights reserved.
+"""Implementation of the Graphviz-based safety observer."""
+
+# Copyright (c) 2025 Linus Held. All rights reserved.
+
+from typing import Any, Optional, TypeAlias
 
 from graphviz import Digraph
 
@@ -18,13 +16,18 @@ from ..core import (
     SumBlock,
     TransformationBlock,
 )
-from ..interfaces import SafetyObserver
+from ..interfaces import FaultType, SafetyObserver
+
+# --- Type Definitions for better readability ---
+PortMap: TypeAlias = dict[str, Optional[str]]
+FlowMap: TypeAlias = dict[FaultType, PortMap]
 
 
 class SafetyVisualizer(SafetyObserver):
-    """
-    Concrete observer that generates a Graphviz visualization of the safety architecture.
-    It maps logical blocks to visual representations and manages the layout.
+    """Concrete observer that generates a Graphviz visualization of the safety architecture.
+
+    It maps logical blocks to visual representations using Graphviz HTML-Labels
+    and manages the auto-layouting of the signal flow.
     """
 
     # --- Layout Constants ---
@@ -81,18 +84,19 @@ class SafetyVisualizer(SafetyObserver):
     PATH_TYPE_LATENT = "latent"
 
     def __init__(self, name: str):
-        """
-        Initializes the visualizer with a Graphviz Digraph.
-        @param name The name of the resulting diagram.
+        """Initializes the visualizer with a Graphviz Digraph.
+
+        Args:
+            name (str): The name of the resulting diagram (and output filename).
         """
         self.dot = Digraph(name=name)
         self.dot.attr(
             rankdir="BT",
             nodesep="1.0",
             ranksep="0.8",
-            splines="spline",
+            splines="spline",  # line, spline, polyline, ortho, curved,  try this compound ??
             newrank=self.TRUE,
-        )  # line, spline, polyline, ortho, curved,  try this compound ??
+        )
         self.dot.attr(
             "node",
             fixedsize=self.TRUE,
@@ -103,15 +107,18 @@ class SafetyVisualizer(SafetyObserver):
 
     # --- Helper Methods ---
 
-    def _get_node_id(self, prefix: str, block) -> str:
-        """
-        Generates a consistent and unique identifier for a Graphviz node.
+    def _get_node_id(self, prefix: str, block: Any) -> str:
+        """Generates a consistent and unique identifier for a Graphviz node.
+
         The ID is constructed using a block-specific prefix, the fault or block name,
         and the unique object memory address to prevent collisions.
 
-        @param prefix The type-specific prefix (e.g., PREFIX_NODE_BE).
-        @param block The block instance for which the ID is generated.
-        @return A unique string identifier for the node.
+        Args:
+            prefix (str): The type-specific prefix (e.g., PREFIX_NODE_BE).
+            block (Any): The block instance for which the ID is generated.
+
+        Returns:
+            str: A unique string identifier for the node.
         """
         base_name = (
             getattr(block, "name", None)
@@ -124,51 +131,52 @@ class SafetyVisualizer(SafetyObserver):
         return f"{prefix}{base_name}_{id(block)}"
 
     def _get_lane_id(self, fault_name: str, path_type: str) -> str:
-        """
-        Generates a consistent group identifier for vertical alignment (Lanes).
+        """Generates a consistent group identifier for vertical alignment (Lanes).
+
         Nodes sharing the same group ID are forced into the same vertical column by Graphviz.
 
-        @param fault_name The name of the fault type (e.g., "SBE").
-        @param path_type The category of the path (PATH_TYPE_RF or PATH_TYPE_LATENT).
-        @return A string identifier used for the 'group' attribute in Graphviz nodes.
+        Args:
+            fault_name (str): The name of the fault type (e.g., "SBE").
+            path_type (str): The category of the path (rf or latent).
+
+        Returns:
+            str: A string identifier used for the 'group' attribute in Graphviz nodes.
         """
         return f"{self.PREFIX_LANE}{fault_name}_{path_type}"
 
     def _draw_junction(
         self,
-        container,
-        fault,
-        branch_ports: list,
-        original_port: str,
+        container: Digraph,
+        fault: FaultType,
+        branch_ports: list[str],
+        original_port: Optional[str],
         color: str,
         path_type: str,
         block_id: int,
-    ) -> str:
-        """
-        Helper method to manage the convergence of multiple fault paths.
-        If more than one path exists (e.g., from multiple parallel sub-blocks or
-        a bypass), it creates a '+' summation node. If only one path exists,
-        it returns that path directly to avoid unnecessary visual clutter.
+    ) -> Optional[str]:
+        """Helper method to manage the convergence of multiple fault paths.
 
-        @param container The Graphviz container (Digraph or Subgraph) to draw in.
-        @param fault The fault type (Enum) being processed.
-        @param branch_ports List of outgoing port IDs from the parallel sub-blocks.
-        @param original_port The incoming port ID from before the summation block.
-        @param color The color for the node and edges (COLOR_RF or COLOR_LATENT).
-        @param path_type The type of the path (PATH_TYPE_RF or PATH_TYPE_LATENT).
-        @param block_id Unique identifier of the parent Sum_Block for ID generation.
-        @return The port ID of the junction output (or the single input path).
-        """
-        # 1. Sammle alle verarbeiteten Ergebnisse (z.B. von Split/Coverage)
-        all_srcs = list(set(branch_ports))
+        If more than one path exists (e.g., from multiple parallel sub-blocks),
+        it creates a '+' summation node. If only one path exists, it returns that
+        path directly to avoid unnecessary visual clutter.
 
-        # 2. ENTSCHEIDUNG: Nur durchleiten, wenn NICHTS verarbeitet wurde.
-        # Wenn die Liste 'all_srcs' leer ist (kein Block hat diesen Fehler angefasst),
-        # dann und NUR DANN nutzen wir den originalen Eingang.
+        Args:
+            container (Digraph): The Graphviz container to draw in.
+            fault (FaultType): The fault type being processed.
+            branch_ports (list[str]): outgoing port IDs from parallel sub-blocks.
+            original_port (Optional[str]): Incoming port ID before summation.
+            color (str): Node/Edge color.
+            path_type (str): 'rf' or 'latent'.
+            block_id (int): ID of the parent SumBlock.
+
+        Returns:
+            Optional[str]: The port ID of the junction output (or single path).
+        """
+        all_srcs = list(set([p for p in branch_ports if p]))
+
         if len(all_srcs) == 0 and original_port:
             all_srcs.append(original_port)
 
-        # 3. Zeichnen (Logik wie gehabt)
         if len(all_srcs) > 1:
             j_id = f"{self.PREFIX_NODE_SUM}{fault.name}_{path_type}_{block_id}"
             group_id = self._get_lane_id(fault.name, path_type)
@@ -192,7 +200,6 @@ class SafetyVisualizer(SafetyObserver):
             return f"{j_id}:{self.COMPASS_NORTH}"
 
         elif len(all_srcs) == 1:
-            # Nur ein Signal (entweder Ergebnis ODER Durchleitung) -> Direkt zurückgeben
             return all_srcs[0]
 
         return None
@@ -201,30 +208,32 @@ class SafetyVisualizer(SafetyObserver):
 
     def on_block_computed(
         self,
-        block,
-        input_ports: dict,
-        spfm_in: dict,
-        lfm_in: dict,
-        spfm_out: dict,
-        lfm_out: dict,
-        container=None,
-        predecessors=None,
-    ) -> dict:
-        """
-        Main entry point for the observer, triggered after a hardware block completes its
-        FIT rate transformation. This method identifies the block type and delegates the
-        drawing task to the specific internal visualization method.
+        block: Any,
+        input_ports: FlowMap,
+        spfm_in: dict[FaultType, float],
+        lfm_in: dict[FaultType, float],
+        spfm_out: dict[FaultType, float],
+        lfm_out: dict[FaultType, float],
+        container: Optional[Digraph] = None,
+        predecessors: Optional[list[str]] = None,
+    ) -> FlowMap:
+        """Main entry point for the observer.
 
-        It ensures that the mathematical results (FIT rates) are correctly mapped to
-        visual elements and manages the propagation of Graphviz port IDs.
+        Triggered after a hardware block completes its FIT rate transformation.
+        Delegates the drawing task to specific internal visualization methods.
 
-        @param block The instance of the logic block being processed (e.g., Sum_Block, Basic_Event).
-        @param input_ports Mapping of fault types to incoming Graphviz node/port IDs.
-        @param spfm_in Dictionary of incoming residual/SPFM FIT rates (before transformation).
-        @param lfm_in Dictionary of incoming latent/LFM FIT rates (before transformation).
-        @param spfm_out Updated dictionary of outgoing residual/SPFM FIT rates.
-        @param lfm_out Updated dictionary of outgoing latent/LFM FIT rates.
-        @return A dictionary containing the newly created output ports for the next block in the chain.
+        Args:
+            block (Any): The instance of the logic block being processed.
+            input_ports (FlowMap): Mapping of fault types to incoming node IDs.
+            spfm_in (dict[FaultType, float]): Incoming residual FIT rates.
+            lfm_in (dict[FaultType, float]): Incoming latent FIT rates.
+            spfm_out (dict[FaultType, float]): Outgoing residual FIT rates.
+            lfm_out (dict[FaultType, float]): Outgoing latent FIT rates.
+            container (Optional[Digraph]): Current subgraph context.
+            predecessors (Optional[list[str]]): List of upstream anchors for alignment.
+
+        Returns:
+            FlowMap: Newly created output ports for the next block.
         """
         if container is None:
             container = self.dot
@@ -263,7 +272,7 @@ class SafetyVisualizer(SafetyObserver):
                     bgcolor=self.COLOR_COMP_BG,
                 )
 
-                internal_inputs = {}
+                internal_inputs: FlowMap = {}
                 local_anchors = []
 
                 with c.subgraph() as in_rank:
@@ -277,7 +286,6 @@ class SafetyVisualizer(SafetyObserver):
 
                         if paths.get(self.PATH_TYPE_RF):
                             in_id = f"in_{id(block)}_{fault.name}_rf"
-
                             val = spfm_in.get(fault, 0.0)
                             label_text = f"In {fault.name}\n{val:.2f}"
 
@@ -292,7 +300,6 @@ class SafetyVisualizer(SafetyObserver):
                                 fixedsize="false",
                                 group=self._get_lane_id(fault.name, self.PATH_TYPE_RF),
                             )
-
                             container.edge(
                                 paths[self.PATH_TYPE_RF],
                                 f"{in_id}:{self.COMPASS_SOUTH}",
@@ -303,7 +310,6 @@ class SafetyVisualizer(SafetyObserver):
 
                         if paths.get(self.PATH_TYPE_LATENT):
                             in_id_lat = f"in_{id(block)}_{fault.name}_lat"
-
                             val = lfm_in.get(fault, 0.0)
                             label_text = f"In {fault.name}\n{val:.2f}"
 
@@ -318,7 +324,6 @@ class SafetyVisualizer(SafetyObserver):
                                 fixedsize="false",
                                 group=self._get_lane_id(fault.name, self.PATH_TYPE_LATENT),
                             )
-
                             container.edge(
                                 paths[self.PATH_TYPE_LATENT],
                                 f"{in_id_lat}:{self.COMPASS_SOUTH}",
@@ -328,11 +333,7 @@ class SafetyVisualizer(SafetyObserver):
                             local_anchors.append(f"{in_id_lat}:{self.COMPASS_NORTH}")
 
                 active_inputs = internal_inputs if internal_inputs else input_ports
-
-                if local_anchors:
-                    active_predecessors = local_anchors
-                else:
-                    active_predecessors = predecessors
+                active_predecessors = local_anchors if local_anchors else predecessors
 
                 internal_results = self.on_block_computed(
                     block.root_block,
@@ -345,8 +346,7 @@ class SafetyVisualizer(SafetyObserver):
                     predecessors=active_predecessors,
                 )
 
-                final_outputs = {}
-
+                final_outputs: FlowMap = {}
                 with c.subgraph() as out_rank:
                     out_rank.attr(rank="same")
 
@@ -358,7 +358,6 @@ class SafetyVisualizer(SafetyObserver):
 
                         if paths.get(self.PATH_TYPE_RF):
                             out_id = f"out_{id(block)}_{fault.name}_rf"
-
                             val = spfm_out.get(fault, 0.0)
                             label_text = f"Out {fault.name}\n{val:.2f}"
 
@@ -373,7 +372,6 @@ class SafetyVisualizer(SafetyObserver):
                                 fixedsize="false",
                                 group=self._get_lane_id(fault.name, self.PATH_TYPE_RF),
                             )
-
                             c.edge(
                                 paths[self.PATH_TYPE_RF],
                                 f"{out_id}:{self.COMPASS_SOUTH}",
@@ -383,7 +381,6 @@ class SafetyVisualizer(SafetyObserver):
 
                         if paths.get(self.PATH_TYPE_LATENT):
                             out_id_lat = f"out_{id(block)}_{fault.name}_lat"
-
                             val = lfm_out.get(fault, 0.0)
                             label_text = f"Out {fault.name}\n{val:.2f}"
 
@@ -398,7 +395,6 @@ class SafetyVisualizer(SafetyObserver):
                                 fixedsize="false",
                                 group=self._get_lane_id(fault.name, self.PATH_TYPE_LATENT),
                             )
-
                             c.edge(
                                 paths[self.PATH_TYPE_LATENT],
                                 f"{out_id_lat}:{self.COMPASS_SOUTH}",
@@ -410,18 +406,16 @@ class SafetyVisualizer(SafetyObserver):
 
         return input_ports
 
-    def _draw_basic_event(self, block, spfm_out, lfm_out, container, predecessors=None) -> dict:
-        """
-        Draws a circle for a FIT source (Basic Event).
-        Enforces fixed sizing and strict lane alignment.
-
-        @param block The Basic_Event instance.
-        @param spfm_out Calculated output dictionary for residual rates.
-        @param lfm_out Calculated output dictionary for latent rates.
-        @return Mapping of fault types to the created node output port.
-        """
+    def _draw_basic_event(
+        self,
+        block: BasicEvent,
+        spfm_out: dict,
+        lfm_out: dict,
+        container: Digraph,
+        predecessors: Optional[list[str]] = None,
+    ) -> FlowMap:
+        """Draws a circle for a FIT source (Basic Event)."""
         node_id = self._get_node_id(self.PREFIX_NODE_BE, block)
-
         label = f"{block.fault_type.name}\n{block.lambda_BE:.2f}"
 
         path_type = self.PATH_TYPE_RF if block.is_spfm else self.PATH_TYPE_LATENT
@@ -453,23 +447,18 @@ class SafetyVisualizer(SafetyObserver):
             }
         }
 
-    def _draw_split_block(self, block, input_ports, spfm_out, lfm_out, container) -> dict:
-        """
-        Draws a Split_Block as a fixed-size HTML table. The table displays the
-        distribution percentages in the top row and the block name in the header row.
-        Incoming edges are connected to the southern port, and unique output ports
-        are generated for each target fault type.
-
-        @param block The Split_Block instance containing distribution rates.
-        @param input_ports Current mapping of fault types to node/port IDs.
-        @param spfm_out Updated dictionary of outgoing residual FIT rates.
-        @param lfm_out Updated dictionary of outgoing latent FIT rates.
-        @return Updated dictionary of output ports for the next block in the chain.
-        """
+    def _draw_split_block(
+        self,
+        block: SplitBlock,
+        input_ports: FlowMap,
+        spfm_out: dict,
+        lfm_out: dict,
+        container: Digraph,
+    ) -> FlowMap:
+        """Draws a SplitBlock as a fixed-size HTML table."""
         node_id = self._get_node_id(self.PREFIX_NODE_SPLIT, block)
 
         num_targets = len(block.distribution_rates)
-
         width_total = int(self.BLOCK_WIDTH_PIXEL)
         cell_width = width_total // num_targets
 
@@ -478,13 +467,15 @@ class SafetyVisualizer(SafetyObserver):
             for tf, p in block.distribution_rates.items()
         ]
 
-        label = f'''<
-        <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" WIDTH="{width_total}" HEIGHT="{self.BLOCK_HEIGHT_PIXEL}" FIXEDSIZE="TRUE">
-          <TR>{"".join(cells)}</TR>
-          <TR>
-            <TD COLSPAN="{num_targets}" WIDTH="{width_total}" HEIGHT="{self.HEADER_HEIGHT}" BGCOLOR="{self.COLOR_HEADER}"><B> Split {block.fault_to_split.name}</B></TD>
-          </TR>
-        </TABLE>>'''
+        label = (
+            f'<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" WIDTH="{width_total}" '
+            f'HEIGHT="{self.BLOCK_HEIGHT_PIXEL}" FIXEDSIZE="TRUE">'
+            f"<TR>{''.join(cells)}</TR>"
+            f"<TR>"
+            f'<TD COLSPAN="{num_targets}" WIDTH="{width_total}" HEIGHT="{self.HEADER_HEIGHT}" '
+            f'BGCOLOR="{self.COLOR_HEADER}"><B> Split {block.fault_to_split.name}</B></TD>'
+            f"</TR></TABLE>>"
+        )
 
         path_type = self.PATH_TYPE_RF if block.is_spfm else self.PATH_TYPE_LATENT
         group_id = self._get_lane_id(block.fault_to_split.name, path_type)
@@ -522,21 +513,15 @@ class SafetyVisualizer(SafetyObserver):
 
         return new_ports
 
-    def _draw_coverage_block(self, block, input_ports, spfm_out, lfm_out, container) -> dict:
-        """
-        Draws a Coverage_Block as a fixed-size HTML table. This block visually
-        represents the diagnostic coverage by splitting an incoming fault path
-        into a residual portion and a latent portion.
-
-        The table shows the percentages for both paths in the top row and
-        the "Coverage" label in the header row.
-
-        @param block The Coverage_Block instance.
-        @param input_ports Current mapping of fault types to node/port IDs.
-        @param spfm_out Updated dictionary of outgoing residual FIT rates.
-        @param lfm_out Updated dictionary of outgoing latent FIT rates.
-        @return Updated dictionary of output ports, now containing both rf and latent anchors.
-        """
+    def _draw_coverage_block(
+        self,
+        block: CoverageBlock,
+        input_ports: FlowMap,
+        spfm_out: dict,
+        lfm_out: dict,
+        container: Digraph,
+    ) -> FlowMap:
+        """Draws a CoverageBlock as a fixed-size HTML table."""
         node_id = self._get_node_id(self.PREFIX_NODE_COV, block)
 
         rf_percent = (1.0 - block.c_R) * 100
@@ -545,16 +530,22 @@ class SafetyVisualizer(SafetyObserver):
         width_total = int(self.BLOCK_WIDTH_PIXEL)
         cell_width = width_total // 2
 
-        label = f'''<
-        <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" WIDTH="{width_total}" HEIGHT="{self.BLOCK_HEIGHT_PIXEL}" FIXEDSIZE="TRUE">
-        <TR>
-            <TD PORT="rf" WIDTH="{cell_width}" HEIGHT="{self.DATA_HEIGHT}" BGCOLOR="{self.COLOR_BG}"><FONT POINT-SIZE="{self.FONT_SIZE_DATA}">{rf_percent:.1f}%</FONT></TD>
-            <TD PORT="latent" WIDTH="{cell_width}" HEIGHT="{self.DATA_HEIGHT}" BGCOLOR="{self.COLOR_BG}"><FONT POINT-SIZE="{self.FONT_SIZE_DATA}">{lat_percent:.1f}%</FONT></TD>
-        </TR>
-        <TR>
-            <TD COLSPAN="2" WIDTH="{width_total}" HEIGHT="{self.HEADER_HEIGHT}" BGCOLOR="{self.COLOR_HEADER}"><B>Coverage</B></TD>
-        </TR>
-        </TABLE>>'''
+        label = (
+            f'<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" WIDTH="{width_total}" '
+            f'HEIGHT="{self.BLOCK_HEIGHT_PIXEL}" FIXEDSIZE="TRUE">'
+            f"<TR>"
+            f'<TD PORT="rf" WIDTH="{cell_width}" HEIGHT="{self.DATA_HEIGHT}" '
+            f'BGCOLOR="{self.COLOR_BG}"><FONT POINT-SIZE="{self.FONT_SIZE_DATA}">'
+            f"{rf_percent:.1f}%</FONT></TD>"
+            f'<TD PORT="latent" WIDTH="{cell_width}" HEIGHT="{self.DATA_HEIGHT}" '
+            f'BGCOLOR="{self.COLOR_BG}"><FONT POINT-SIZE="{self.FONT_SIZE_DATA}">'
+            f"{lat_percent:.1f}%</FONT></TD>"
+            f"</TR>"
+            f"<TR>"
+            f'<TD COLSPAN="2" WIDTH="{width_total}" HEIGHT="{self.HEADER_HEIGHT}" '
+            f'BGCOLOR="{self.COLOR_HEADER}"><B>Coverage</B></TD>'
+            f"</TR></TABLE>>"
+        )
 
         path_type = self.PATH_TYPE_RF if block.is_spfm else self.PATH_TYPE_LATENT
         group_id = self._get_lane_id(block.target_fault.name, path_type)
@@ -574,7 +565,6 @@ class SafetyVisualizer(SafetyObserver):
             )
 
         new_ports = input_ports.copy()
-
         port_rf = f"{node_id}:rf:{self.COMPASS_NORTH}"
         port_lat = f"{node_id}:latent:{self.COMPASS_NORTH}"
 
@@ -591,18 +581,15 @@ class SafetyVisualizer(SafetyObserver):
 
         return new_ports
 
-    def _draw_asil_block(self, block, input_ports, spfm_out, lfm_out, container) -> dict:
-        """
-        Draws the final ASIL evaluation block at the end of the chain.
-        It aggregates all remaining fault paths into central summation nodes
-        and places the evaluation box at the very top (sink) of the graph.
-
-        @param block The ASIL_Block instance.
-        @param input_ports Current mapping of all active fault paths.
-        @param spfm_out Final residual FIT rates for all faults.
-        @param lfm_out Final latent FIT rates for all faults.
-        @return An empty dictionary as this is the terminal node of the graph.
-        """
+    def _draw_asil_block(
+        self,
+        block: AsilBlock,
+        input_ports: FlowMap,
+        spfm_out: dict,
+        lfm_out: dict,
+        container: Digraph,
+    ) -> FlowMap:
+        """Draws the final ASIL evaluation block at the end of the chain."""
         node_id = self._get_node_id(self.PREFIX_NODE_ASIL, block)
 
         all_rf_srcs = []
@@ -672,18 +659,15 @@ class SafetyVisualizer(SafetyObserver):
 
         return {}
 
-    def _draw_pipeline_block(self, block, input_ports, spfm_in, lfm_in, container) -> dict:
-        """
-        Orchestrates the visualization of a sequential chain of blocks.
-        It creates a dashed cluster to group the sequence and ensures that
-        the output ports of one block are correctly linked to the input of the next.
-
-        @param block The Pipeline_Block instance.
-        @param input_ports Initial incoming port IDs for the pipeline.
-        @param spfm_in Initial residual FIT rates entering the pipeline.
-        @param lfm_in Initial latent FIT rates entering the pipeline.
-        @return The output ports of the final block in the sequence.
-        """
+    def _draw_pipeline_block(
+        self,
+        block: PipelineBlock,
+        input_ports: FlowMap,
+        spfm_in: dict,
+        lfm_in: dict,
+        container: Digraph,
+    ) -> FlowMap:
+        """Orchestrates the visualization of a sequential chain of blocks."""
         current_ports = input_ports
         current_spfm = spfm_in
         current_lfm = lfm_in
@@ -724,29 +708,18 @@ class SafetyVisualizer(SafetyObserver):
 
     def _draw_sum_block(
         self,
-        block,
-        input_ports,
-        spfm_in,
-        lfm_in,
-        spfm_out,
-        lfm_out,
-        container,
-        predecessors=None,
-    ) -> dict:
-        """
-        Draws a parallel aggregation block. It creates a dotted cluster to group
-        sub-blocks, ensures children are aligned horizontally, and places '+'
-        summation nodes to join the fault paths.
-
-        @param block The Sum_Block instance containing sub-blocks.
-        @param input_ports Mapping of incoming node IDs.
-        @param spfm_out Final residual rates after summation.
-        @param lfm_out Final latent rates after summation.
-        @return Mapping of fault types to the final summation node ports.
-        """
+        block: SumBlock,
+        input_ports: FlowMap,
+        spfm_in: dict,
+        lfm_in: dict,
+        spfm_out: dict,
+        lfm_out: dict,
+        container: Digraph,
+        predecessors: Optional[list[str]] = None,
+    ) -> FlowMap:
+        """Draws a parallel aggregation block with summation nodes."""
         rf_collect = {}
         lat_collect = {}
-
         processed_rf = set()
         processed_lat = set()
 
@@ -792,23 +765,19 @@ class SafetyVisualizer(SafetyObserver):
 
                         if ports.get(self.PATH_TYPE_RF):
                             has_changed = ports[self.PATH_TYPE_RF] != original_rf
-
                             if (is_source_block and sub_block.is_spfm) or has_changed:
                                 rf_collect.setdefault(fault, []).append(ports[self.PATH_TYPE_RF])
-
                                 if is_processing_block and has_changed:
                                     processed_rf.add(fault)
 
                         if ports.get(self.PATH_TYPE_LATENT):
                             has_changed = ports[self.PATH_TYPE_LATENT] != original_lat
-
                             if (is_source_block and not sub_block.is_spfm) or has_changed:
                                 lat_collect.setdefault(fault, []).append(ports[self.PATH_TYPE_LATENT])
-
                                 if is_processing_block and has_changed:
                                     processed_lat.add(fault)
 
-            final_ports = {}
+            final_ports: FlowMap = {}
             all_faults = set(input_ports.keys()) | set(rf_collect.keys()) | set(lat_collect.keys())
 
             for fault in all_faults:
@@ -819,7 +788,6 @@ class SafetyVisualizer(SafetyObserver):
 
                 sources_rf = rf_collect.get(fault, [])
                 orig_rf = input_ports.get(fault, {}).get(self.PATH_TYPE_RF)
-
                 if fault not in processed_rf and orig_rf:
                     if orig_rf not in sources_rf:
                         sources_rf.append(orig_rf)
@@ -836,7 +804,6 @@ class SafetyVisualizer(SafetyObserver):
 
                 sources_lat = lat_collect.get(fault, [])
                 orig_lat = input_ports.get(fault, {}).get(self.PATH_TYPE_LATENT)
-
                 if fault not in processed_lat and orig_lat:
                     if orig_lat not in sources_lat:
                         sources_lat.append(orig_lat)
@@ -853,39 +820,34 @@ class SafetyVisualizer(SafetyObserver):
 
         return final_ports
 
-    def _draw_transformation_block(self, block, input_ports, spfm_out, lfm_out, container) -> dict:
-        """
-        Draws a Transformation_Block as a fixed-size HTML table. This block represents
-        the transfer of a FIT rate portion from a source fault type to a target fault
-        type (e.g., SBE propagating to DBE).
-
-        The table displays the transformation factor in the top row and the
-        "Transformation" label in the header row.
-
-        @param block The Transformation_Block instance.
-        @param input_ports Current mapping of fault types to node/port IDs.
-        @param spfm_out Updated dictionary of outgoing residual FIT rates.
-        @param lfm_out Updated dictionary of outgoing latent FIT rates.
-        @return Updated dictionary of output ports for the target fault type.
-        """
+    def _draw_transformation_block(
+        self,
+        block: TransformationBlock,
+        input_ports: FlowMap,
+        spfm_out: dict,
+        lfm_out: dict,
+        container: Digraph,
+    ) -> FlowMap:
+        """Draws a TransformationBlock as a fixed-size HTML table."""
         node_id = f"{self.PREFIX_NODE_TRANS}{block.source.name}_to_{block.target.name}_{id(block)}"
-
         percent_label = f"{block.factor * 100:.1f}%"
-
         width_total = int(self.BLOCK_WIDTH_PIXEL)
 
-        label = f'''<
-        <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" WIDTH="{width_total}" HEIGHT="{self.BLOCK_HEIGHT_PIXEL}" FIXEDSIZE="TRUE">
-        <TR>
-            <TD PORT="out" WIDTH="{width_total}" HEIGHT="{self.DATA_HEIGHT}" BGCOLOR="{self.COLOR_BG}"><FONT POINT-SIZE="{self.FONT_SIZE_DATA}">{percent_label}</FONT></TD>
-        </TR>
-        <TR>
-            <TD WIDTH="{width_total}" HEIGHT="{self.HEADER_HEIGHT}" BGCOLOR="{self.COLOR_HEADER}"><B>Transf.</B></TD>
-        </TR>
-        </TABLE>>'''
+        label = (
+            f'<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" WIDTH="{width_total}" '
+            f'HEIGHT="{self.BLOCK_HEIGHT_PIXEL}" FIXEDSIZE="TRUE">'
+            f"<TR>"
+            f'<TD PORT="out" WIDTH="{width_total}" HEIGHT="{self.DATA_HEIGHT}" '
+            f'BGCOLOR="{self.COLOR_BG}"><FONT POINT-SIZE="{self.FONT_SIZE_DATA}">'
+            f"{percent_label}</FONT></TD>"
+            f"</TR>"
+            f"<TR>"
+            f'<TD WIDTH="{width_total}" HEIGHT="{self.HEADER_HEIGHT}" '
+            f'BGCOLOR="{self.COLOR_HEADER}"><B>Transf.</B></TD>'
+            f"</TR></TABLE>>"
+        )
 
         group_id = self._get_lane_id(block.source.name, self.PATH_TYPE_RF)
-
         container.node(node_id, label=label, shape="none", group=group_id)
 
         source_ports = input_ports.get(block.source, {})
@@ -900,7 +862,6 @@ class SafetyVisualizer(SafetyObserver):
             )
 
         new_ports = input_ports.copy()
-
         prev_target_ports = input_ports.get(block.target, {self.PATH_TYPE_RF: None, self.PATH_TYPE_LATENT: None})
 
         new_ports[block.target] = {
@@ -911,8 +872,9 @@ class SafetyVisualizer(SafetyObserver):
         return new_ports
 
     def render(self, filename: str):
-        """
-        Exports the current graph to a PDF file.
-        @param filename The path/name for the exported file.
+        """Exports the current graph to a PDF file.
+
+        Args:
+            filename (str): The path/name for the exported file (without extension).
         """
         self.dot.render(filename, view=True)

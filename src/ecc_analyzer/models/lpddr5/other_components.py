@@ -1,11 +1,37 @@
-from Modules.Core.Base import FAULTS, Base
+"""Component representing miscellaneous hardware parts with fixed FIT rates (LPDDR5)."""
+
+# Copyright (c) 2025 Linus Held. All rights reserved.
+
+from ...core import Base, BasicEvent, SumBlock
+from ...interfaces import FaultType
 
 
-class Other_Components(Base):
-    def __init__(self, name: str, spfm_input: dict, lfm_input):
-        self.OTHER_RF_SOURCE = 9.5  #
+class OtherComponents(Base):
+    """Component representing miscellaneous hardware parts that contribute a fixed FIT rate.
 
-        super().__init__(name, spfm_input, lfm_input)
+    This module encapsulates all non-DRAM components (e.g., peripheral logic) into a
+    single source injection block to simplify the top-level model.
+    """
+
+    def __init__(self, name: str):
+        """Initializes the component and sets the constant source FIT rate.
+
+        Args:
+            name (str): The descriptive name of the component.
+        """
+        self.other_rf_source = 9.5
+
+        super().__init__(name)
 
     def configure_blocks(self):
-        self.spfm_source_blocks[FAULTS.OTH] = self.BasicEvent(FAULTS.OTH, self.OTHER_RF_SOURCE)
+        """Configures the root block to inject the FIT rate.
+
+        Uses a SumBlock as the base container for the fault source (BasicEvent).
+        The fault is injected into the residual path (is_spfm=True).
+        """
+        self.root_block = SumBlock(
+            self.name,
+            [
+                BasicEvent(FaultType.OTH, self.other_rf_source, is_spfm=True),
+            ],
+        )

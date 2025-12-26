@@ -1,21 +1,51 @@
-from Modules.Core.Base import FAULTS, Base
+"""Component for trimming and distributing residual and latent fault rates after SEC-DED processing (LPDDR5)."""
+
+# Copyright (c) 2025 Linus Held. All rights reserved.
+
+from ...core import Base, SplitBlock, SumBlock
+from ...interfaces import FaultType
 
 
-class SEC_DED_TRIM(Base):
-    def __init__(self, name: str, spfm_input: dict, lfm_input):
-        # --- SPFM Split-Parameter ---
-        self.spfm_SBE_split = {FAULTS.SBE: 0.89}
-        self.spfm_DBE_split = {FAULTS.SBE: 0.20, FAULTS.DBE: 0.79}
-        self.spfm_TBE_split = {FAULTS.SBE: 0.03, FAULTS.DBE: 0.27, FAULTS.TBE: 0.70}
+class SecDedTrim(Base):
+    """Component for trimming and distributing residual and latent fault rates after SEC-DED processing.
 
-        # --- LFM Split-Parameter (identisch zur SPFM-Logik) ---
+    This module chains sequential split operations for SBE, DBE, and TBE fault types to
+    model the final trimming behavior of the LPDDR5 architecture.
+    """
 
-        super().__init__(name, spfm_input, lfm_input)
+    def __init__(self, name: str):
+        """Initializes the SecDedTrim component with predefined split parameters.
+
+        Args:
+            name (str): The descriptive name of the component.
+        """
+        self.spfm_sbe_split = {FaultType.SBE: 0.89}
+        self.spfm_dbe_split = {FaultType.SBE: 0.20, FaultType.DBE: 0.79}
+        self.spfm_tbe_split = {
+            FaultType.SBE: 0.03,
+            FaultType.DBE: 0.27,
+            FaultType.TBE: 0.70,
+        }
+
+        self.lfm_sbe_split = self.spfm_sbe_split
+        self.lfm_dbe_split = self.spfm_dbe_split
+        self.lfm_tbe_split = self.spfm_tbe_split
+
+        super().__init__(name)
 
     def configure_blocks(self):
-        # --- SPFM Split Blöcke ---
-        self.spfm_split_blocks[FAULTS.SBE] = self.SplitBlock(FAULTS.SBE, self.spfm_SBE_split)
-        self.spfm_split_blocks[FAULTS.DBE] = self.SplitBlock(FAULTS.DBE, self.spfm_DBE_split)
-        self.spfm_split_blocks[FAULTS.TBE] = self.SplitBlock(FAULTS.TBE, self.spfm_TBE_split)
+        """Configures the root block as a collection of split operations.
 
-        # --- LFM Split Blöcke ---
+        Redistributes faults for both residual (SPFM) and latent (LFM) paths.
+        """
+        self.root_block = SumBlock(
+            self.name,
+            [
+                SplitBlock("SPFM_SBE_Split", FaultType.SBE, self.spfm_sbe_split, is_spfm=True),
+                SplitBlock("SPFM_DBE_Split", FaultType.DBE, self.spfm_dbe_split, is_spfm=True),
+                SplitBlock("SPFM_TBE_Split", FaultType.TBE, self.spfm_tbe_split, is_spfm=True),
+                SplitBlock("LFM_SBE_Split", FaultType.SBE, self.lfm_sbe_split, is_spfm=False),
+                SplitBlock("LFM_DBE_Split", FaultType.DBE, self.lfm_dbe_split, is_spfm=False),
+                SplitBlock("LFM_TBE_Split", FaultType.TBE, self.lfm_tbe_split, is_spfm=False),
+            ],
+        )

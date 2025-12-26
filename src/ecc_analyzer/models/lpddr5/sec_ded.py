@@ -1,36 +1,78 @@
-from Modules.Core.Base import FAULTS, Base
+"""Component for Single Error Correction and Double Error Detection (SEC-DED) in LPDDR5."""
+
+# Copyright (c) 2025 Linus Held. All rights reserved.
+
+from ...core import Base, BasicEvent, CoverageBlock, PipelineBlock, SplitBlock, SumBlock
+from ...interfaces import FaultType
 
 
-class SEC_DED(Base):
-    def __init__(self, name: str, spfm_input: dict, lfm_input):
-        # --- SPFM-Parameter ---
-        self.SBE_DC = 1.0  # 100% Coverage für SBE
-        self.DBE_DC = 1.0  # 100% Coverage für DBE
-        self.MBE_DC = 0.5  # 50% Coverage für MBE
-        self.TBE_DC = 1.0  # 100% Coverage für den TBE-Anteil
+class SecDed(Base):
+    """Component for Single Error Correction and Double Error Detection (SEC-DED).
 
-        # TBE-Split:
-        self.TBE_SPLIT_TO_MBE = 0.56
+    This module handles the diagnostic coverage for multiple fault types (SBE, DBE, TBE, MBE)
+    and manages the transformation of Triple Bit Errors (TBE) into Multi Bit Errors (MBE).
+    """
 
-        # --- LFM-Parameter ---
-        self.LFM_SBE_DC = 1.0  # 100% Coverage für latente SBE
-        self.LFM_DBE_DC = 1.0  # 100% Coverage für latente DBE
+    def __init__(self, name: str):
+        """Initializes the SEC-DED component with coverage and source parameters.
 
-        # --- Quellen-Parameter ---
-        self.SDB_SOURCE = 0.1  # "SEC-DED Broken" latente Fehlerquelle
+        Args:
+            name (str): The descriptive name of the component.
+        """
 
-        super().__init__(name, spfm_input, lfm_input)
+        self.sbe_dc = 1.0
+        self.dbe_dc = 1.0
+        self.mbe_dc = 0.5
+        self.tbe_dc = 1.0
+
+        self.tbe_split_to_mbe = 0.56
+
+        self.lfm_sbe_dc = 1.0
+        self.lfm_dbe_dc = 1.0
+
+        self.sdb_source = 0.1
+
+        super().__init__(name)
 
     def configure_blocks(self):
-        # --- SPFM Blöcke ---
-        self.spfm_coverage_blocks[FAULTS.SBE] = self.CoverageBlock(FAULTS.SBE, self.SBE_DC, self.SBE_DC)
-        self.spfm_coverage_blocks[FAULTS.DBE] = self.CoverageBlock(FAULTS.DBE, self.DBE_DC, self.DBE_DC)
-        self.spfm_coverage_blocks[FAULTS.TBE] = self.CoverageBlock(FAULTS.TBE, self.TBE_DC, self.TBE_DC)
-        self.spfm_coverage_blocks[FAULTS.MBE] = self.CoverageBlock(FAULTS.MBE, self.MBE_DC, self.MBE_DC)
+        """Configures the block structure.
 
-        self.spfm_split_blocks[FAULTS.TBE] = self.SplitBlock(FAULTS.TBE, {FAULTS.MBE: self.TBE_SPLIT_TO_MBE})
+        Uses a SumBlock to combine the latent fault source (SDB) with the main
+        processing pipeline (Split & Coverage).
+        """
+        spfm_pipeline = PipelineBlock(
+            "SEC_DED_Processing",
+            [
+                SplitBlock(
+                    "TBE_to_MBE_Split",
+                    FaultType.TBE,
+                    {
+                        FaultType.MBE: self.tbe_split_to_mbe,
+                        FaultType.TBE: 1.0 - self.tbe_split_to_mbe,
+                    },
+                    is_spfm=True,
+                ),
+                CoverageBlock(
+                    FaultType.SBE,
+                    self.sbe_dc,
+                    dc_rate_latent_cL=self.lfm_sbe_dc,
+                    is_spfm=True,
+                ),
+                CoverageBlock(
+                    FaultType.DBE,
+                    self.dbe_dc,
+                    dc_rate_latent_cL=self.lfm_dbe_dc,
+                    is_spfm=True,
+                ),
+                CoverageBlock(FaultType.TBE, self.tbe_dc, is_spfm=True),
+                CoverageBlock(FaultType.MBE, self.mbe_dc, is_spfm=True),
+            ],
+        )
 
-        # --- LFM Blöcke ---
-
-        # --- LFM Quellen ---
-        self.lfm_source_blocks[FAULTS.SDB] = self.BasicEvent(FAULTS.SDB, self.SDB_SOURCE)
+        self.root_block = SumBlock(
+            self.name,
+            [
+                spfm_pipeline,
+                BasicEvent(FaultType.SDB, self.sdb_source, is_spfm=False),
+            ],
+        )

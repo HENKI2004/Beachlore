@@ -1,4 +1,4 @@
-"""Primary failure rate source component for LPDDR4 DRAM."""
+"""Primary failure rate source component for LPDDR5 DRAM."""
 
 # Copyright (c) 2025 Linus Held. All rights reserved.
 
@@ -7,7 +7,7 @@ from ...interfaces import FaultType
 
 
 class Events(Base):
-    """Initializes the baseline DRAM failure rates for LPDDR4.
+    """Initializes the baseline DRAM failure rates for LPDDR5.
 
     This module acts as a primary source for SBE, DBE, MBE, and WD faults.
     As a pure source component, it uses a SumBlock to inject all rates in parallel.

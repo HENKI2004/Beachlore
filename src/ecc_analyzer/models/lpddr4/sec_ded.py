@@ -1,61 +1,50 @@
-#
-#  @file SEC_DED.py
-#  @author Linus Held
-#  @brief Component for Single Error Correction and Double Error Detection (SEC-DED).
-#  @version 2.0
-#  @date 2025-12-25
-#
-#  @copyright Copyright (c) 2025 Linus Held. All rights reserved.
-#
+"""Component for Single Error Correction and Double Error Detection (SEC-DED) in LPDDR4."""
+
+# Copyright (c) 2025 Linus Held. All rights reserved.
 
 from ...core import Base, BasicEvent, CoverageBlock, SumBlock, TransformationBlock
 from ...interfaces import FaultType
 
 
 class SecDed(Base):
-    """
-    Component for Single Error Correction and Double Error Detection (SEC-DED).
+    """Component for Single Error Correction and Double Error Detection (SEC-DED).
+
     This module manages diagnostic coverage for multiple fault types and handles
-    transformations between failure modes.
-    Uses a Pipeline_Block to enforce the sequence of injection, transformation, and coverage.
+    transformations between failure modes (e.g., TBE -> MBE).
     """
 
     def __init__(self, name: str):
+        """Initializes the SEC-DED component with specific diagnostic coverage and source parameters.
+
+        Args:
+            name (str): The descriptive name of the component.
         """
-        Initializes the SEC-DED component with specific diagnostic coverage and source parameters.
+        self.sbe_dc = 1.0
+        self.dbe_dc = 1.0
+        self.mbe_dc = 0.5
+        self.tbe_dc = 1.0
 
-        @param name The descriptive name of the component.
-        """
-        self.SBE_DC = 1.0
-        self.DBE_DC = 1.0
-        self.MBE_DC = 0.5
-        self.TBE_DC = 1.0
+        self.tbe_split_to_mbe = 0.56
 
-        self.TBE_SPLIT_TO_MBE = 0.56
+        self.lfm_sbe_dc = 1.0
+        self.lfm_dbe_dc = 1.0
 
-        self.LFM_SBE_DC = 1.0
-        self.LFM_DBE_DC = 1.0
-
-        self.SDB_SOURCE = 0.1
+        self.sdb_source = 0.1
 
         super().__init__(name)
 
     def configure_blocks(self):
-        """
-        Configures the internal block structure as a sequential pipeline.
-        This ensures that local sources are added before transformations occur,
-        and all rates are finally filtered by the coverage blocks.
-        """
+        """Configures the internal block structure as a sum block."""
         self.root_block = SumBlock(
             self.name,
             [
-                BasicEvent(FaultType.SDB, self.SDB_SOURCE, is_spfm=False),
-                CoverageBlock(FaultType.SBE, self.LFM_SBE_DC, is_spfm=False),
-                CoverageBlock(FaultType.DBE, self.LFM_DBE_DC, is_spfm=False),
-                TransformationBlock(FaultType.TBE, FaultType.MBE, self.TBE_SPLIT_TO_MBE),
-                CoverageBlock(FaultType.SBE, self.SBE_DC),
-                CoverageBlock(FaultType.DBE, self.DBE_DC),
-                CoverageBlock(FaultType.TBE, self.TBE_DC),
-                CoverageBlock(FaultType.MBE, self.MBE_DC),
+                BasicEvent(FaultType.SDB, self.sdb_source, is_spfm=False),
+                CoverageBlock(FaultType.SBE, self.lfm_sbe_dc, is_spfm=False),
+                CoverageBlock(FaultType.DBE, self.lfm_dbe_dc, is_spfm=False),
+                TransformationBlock(FaultType.TBE, FaultType.MBE, self.tbe_split_to_mbe),
+                CoverageBlock(FaultType.SBE, self.sbe_dc),
+                CoverageBlock(FaultType.DBE, self.dbe_dc),
+                CoverageBlock(FaultType.TBE, self.tbe_dc),
+                CoverageBlock(FaultType.MBE, self.mbe_dc),
             ],
         )

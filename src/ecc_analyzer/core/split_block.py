@@ -1,37 +1,37 @@
-#
-#  @file Split_Block.py
-#  @author Linus Held
-#  @brief Distributes FIT rates of a specific fault type across multiple targets.
-#  @version 2.0
-#  @date 2025-12-25
-#
-#  @copyright Copyright (c) 2025 Linus Held. All rights reserved.
-#
+"""Distributes FIT rates of a specific fault type across multiple targets."""
+
+# Copyright (c) 2025 Linus Held. All rights reserved.
 
 from ..interfaces import BlockInterface, FaultType
 
 
 class SplitBlock(BlockInterface):
-    """
-    Distributes the FIT rate of a specific fault type across multiple other fault types
-    based on a defined distribution.
+    """Distributes the FIT rate of a specific fault type across multiple other fault types.
+
+    The distribution is based on a defined percentage mapping. This is typically used
+    to model how a generic fault (like "DRAM Error") manifests as specific sub-types
+    (e.g., SBE, DBE) based on physical probabilities.
     """
 
     def __init__(
         self,
         name: str,
         fault_to_split: FaultType,
-        distribution_rates: dict,
+        distribution_rates: dict[FaultType, float],
         is_spfm: bool = True,
     ):
-        """
-        Initializes the Split_Block with a distribution mapping.
+        """Initializes the SplitBlock with a distribution mapping.
 
-        @param name The descriptive name of the split operation.
-        @param fault_to_split The source fault type (Enum) to be distributed.
-        @param distribution_rates Dictionary mapping target FAULTS to their probability (0.0 - 1.0).
-        @param is_spfm Indicates if this split occurs on the SPFM/residual path.
-        @throws ValueError If the sum of distribution rates exceeds 1.0.
+        Args:
+            name (str): The descriptive name of the split operation.
+            fault_to_split (FaultType): The source fault type (Enum) to be distributed.
+            distribution_rates (dict[FaultType, float]): Dictionary mapping target
+                FaultTypes to their probability (0.0 - 1.0).
+            is_spfm (bool, optional): Indicates if this split occurs on the SPFM/residual
+                path. Defaults to True.
+
+        Raises:
+            ValueError: If the sum of the provided distribution rates exceeds 1.0.
         """
         sum_of_rates = sum(distribution_rates.values())
         if sum_of_rates > 1.0 + 1e-9:
@@ -42,13 +42,17 @@ class SplitBlock(BlockInterface):
         self.distribution_rates = distribution_rates
         self.is_spfm = is_spfm
 
-    def compute_fit(self, spfm_rates: dict, lfm_rates: dict) -> tuple[dict, dict]:
-        """
-        Transforms the input fault rate dictionaries by redistributing the source fault rate.
+    def compute_fit(self, spfm_rates: dict[FaultType, float], lfm_rates: dict[FaultType, float]) -> tuple[dict[FaultType, float], dict[FaultType, float]]:
+        """Transforms the input fault rate dictionaries by redistributing the source fault rate.
 
-        @param spfm_rates Dictionary containing current SPFM/residual fault rates.
-        @param lfm_rates Dictionary containing current LFM/latent fault rates.
-        @return A tuple of updated (spfm_rates, lfm_rates) dictionaries.
+        Args:
+            spfm_rates (dict[FaultType, float]): Current residual failure rates.
+            lfm_rates (dict[FaultType, float]): Current latent failure rates.
+
+        Returns:
+            tuple[dict[FaultType, float], dict[FaultType, float]]: A tuple containing:
+                - Updated SPFM rates.
+                - Updated LFM rates.
         """
         new_spfm = spfm_rates.copy()
         new_lfm = lfm_rates.copy()

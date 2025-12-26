@@ -1,9 +1,5 @@
-#  @file __init__.py
-#  @author Linus Held
-#  @brief Main package initialization. Exposes the core system orchestrator.
-#  @version 1.0
-#  @date 2025-12-24
-#
+"""Main package initialization. Exposes the core system orchestrator."""
+
 #  @copyright Copyright (c) 2025 Linus Held. All rights reserved.
 
 from .system_base import SystemBase

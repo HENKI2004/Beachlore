@@ -1,41 +1,40 @@
-#
-#  @file Basic_Event.py
-#  @author Linus Held
-#  @brief Represents a fault source (Basic Event) injecting FIT rates.
-#  @version 2.0
-#  @date 2025-12-25
-#
-#  @copyright Copyright (c) 2025 Linus Held. All rights reserved.
-#
+"""Represents a fault source (Basic Event) injecting FIT rates."""
+
+# Copyright (c) 2025 Linus Held. All rights reserved.
 
 from ..interfaces import BlockInterface, FaultType
 
 
 class BasicEvent(BlockInterface):
-    """
-    Represents a source of a fault (Basic Event) that injects a specific FIT rate into the system.
+    """Represents a source of a fault (Basic Event) that injects a specific FIT rate.
+
     This class handles the mathematical addition of failure rates to the fault dictionaries.
     """
 
     def __init__(self, fault_type: FaultType, rate: float, is_spfm: bool = True):
-        """
-        Initializes the Basic_Event fault source.
+        """Initializes the BasicEvent fault source.
 
-        @param fault_type The type of fault (Enum) this event produces.
-        @param rate The FIT rate of this basic event.
-        @param is_spfm Whether this rate counts towards SPFM (True) or LFM (False).
+        Args:
+            fault_type (FaultType): The type of fault (Enum) this event produces.
+            rate (float): The FIT rate of this basic event.
+            is_spfm (bool, optional): Whether this rate counts towards SPFM (True)
+                or LFM (False). Defaults to True.
         """
         self.fault_type = fault_type
         self.lambda_BE = rate
         self.is_spfm = is_spfm
 
-    def compute_fit(self, spfm_rates: dict, lfm_rates: dict) -> tuple[dict, dict]:
-        """
-        Transforms the input fault rate dictionaries by injecting the defined FIT rate.
+    def compute_fit(self, spfm_rates: dict[FaultType, float], lfm_rates: dict[FaultType, float]) -> tuple[dict[FaultType, float], dict[FaultType, float]]:
+        """Transforms the input fault rate dictionaries by injecting the defined FIT rate.
 
-        @param spfm_rates Dictionary containing current SPFM/residual fault rates.
-        @param lfm_rates Dictionary containing current LFM/latent fault rates.
-        @return A tuple of updated (spfm_rates, lfm_rates) dictionaries.
+        Args:
+            spfm_rates (dict[FaultType, float]): Dictionary containing current SPFM/residual fault rates.
+            lfm_rates (dict[FaultType, float]): Dictionary containing current LFM/latent fault rates.
+
+        Returns:
+            tuple[dict[FaultType, float], dict[FaultType, float]]: A tuple containing:
+                - Updated SPFM rates dictionary.
+                - Updated LFM rates dictionary.
         """
         new_spfm = spfm_rates.copy()
         new_lfm = lfm_rates.copy()

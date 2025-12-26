@@ -1,39 +1,42 @@
-#
-#  @file Sum_Block.py
-#  @author Linus Held
-#  @brief Parallel block that aggregates FIT rates from multiple sub-blocks.
-#  @version 2.0
-#  @date 2025-12-25
-#
-#  @copyright Copyright (c) 2025 Linus Held. All rights reserved.
-#
+"""Parallel block that aggregates FIT rates from multiple sub-blocks."""
 
-from ..interfaces import BlockInterface
+# Copyright (c) 2025 Linus Held. All rights reserved.
+
+from ..interfaces import BlockInterface, FaultType
 
 
 class SumBlock(BlockInterface):
-    """
-    Parallel block that aggregates FIT rates from multiple sub-blocks and manages path junctions.
+    """Parallel block that aggregates FIT rates from multiple sub-blocks.
+
+    Manages path junctions by executing sub-blocks in parallel (starting from the
+    same input state) and calculating the sum of their individual contributions
+    (deltas) to the total system rates.
     """
 
     def __init__(self, name: str, sub_blocks: list[BlockInterface]):
-        """
-        Initializes the sum block with a list of parallel sub-blocks.
+        """Initializes the SumBlock with a list of parallel sub-blocks.
 
-        @param name The descriptive name of the aggregation block.
-        @param sub_blocks List of blocks whose results will be summed.
+        Args:
+            name (str): The descriptive name of the aggregation block.
+            sub_blocks (list[BlockInterface]): List of blocks whose results will be summed.
         """
         self.name = name
         self.sub_blocks = sub_blocks
 
-    def compute_fit(self, spfm_rates: dict, lfm_rates: dict) -> tuple[dict, dict]:
-        """
-        Aggregates the FIT rate transformations from all internal parallel blocks.
-        Calculates the delta contribution of each block to the total system rates.
+    def compute_fit(self, spfm_rates: dict[FaultType, float], lfm_rates: dict[FaultType, float]) -> tuple[dict[FaultType, float], dict[FaultType, float]]:
+        """Aggregates the FIT rate transformations from all internal parallel blocks.
 
-        @param spfm_rates Dictionary containing current SPFM/residual fault rates.
-        @param lfm_rates Dictionary containing current LFM/latent fault rates.
-        @return A tuple of updated (spfm_rates, lfm_rates) dictionaries.
+        Calculates the delta contribution of each block relative to the input state
+        and sums these deltas to produce the final output state.
+
+        Args:
+            spfm_rates (dict[FaultType, float]): Current residual failure rates (Input state).
+            lfm_rates (dict[FaultType, float]): Current latent failure rates (Input state).
+
+        Returns:
+            tuple[dict[FaultType, float], dict[FaultType, float]]: A tuple containing:
+                - Final aggregated SPFM rates.
+                - Final aggregated LFM rates.
         """
         total_spfm = spfm_rates.copy()
         total_lfm = lfm_rates.copy()

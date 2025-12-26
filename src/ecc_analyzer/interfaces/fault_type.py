@@ -1,3 +1,7 @@
+"""Defines the Faulttypes which are possible"""
+
+# Copyright (c) 2025 Linus Held. All rights reserved.
+
 from enum import Enum, auto
 
 

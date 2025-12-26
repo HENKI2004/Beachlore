@@ -1,53 +1,57 @@
-#
-#  @file Coverage_Block.py
-#  @author Linus Held
-#  @brief Applies diagnostic coverage (DC) to fault rates.
-#  @version 2.0
-#  @date 2025-12-25
-#
-#  @copyright Copyright (c) 2025 Linus Held. All rights reserved.
-#
+"""Applies diagnostic coverage (DC) to fault rates."""
+
+# Copyright (c) 2025 Linus Held. All rights reserved.
+
+from typing import Optional
 
 from ..interfaces import BlockInterface, FaultType
 
 
 class CoverageBlock(BlockInterface):
-    """
-    Applies diagnostic coverage (DC) to a fault type, splitting FIT rates into residual and latent components.
+    """Applies diagnostic coverage (DC) to a fault type.
+
+    Splits FIT rates into residual and latent components based on the defined
+    coverage values (c_R, c_L).
     """
 
     def __init__(
         self,
         target_fault: FaultType,
         dc_rate_c_or_cR: float,
-        dc_rate_latent_cL: float = None,
+        dc_rate_latent_cL: Optional[float] = None,
         is_spfm: bool = True,
     ):
-        """
-        Initializes the Coverage_Block with specific diagnostic coverage parameters.
+        """Initializes the CoverageBlock with specific diagnostic coverage parameters.
 
-        @param target_fault The fault type (Enum) to which coverage is applied.
-        @param dc_rate_c_or_cR The diagnostic coverage for residual faults (c or cR).
-        @param dc_rate_latent_cL Optional specific coverage for latent faults (cL).
-        @param is_spfm Indicates if this block processes the SPFM/residual path.
+        Args:
+            target_fault (FaultType): The fault type (Enum) to which coverage is applied.
+            dc_rate_c_or_cR (float): The diagnostic coverage for residual faults
+                (typically denoted as K_DC or c_R).
+            dc_rate_latent_cL (Optional[float]): Optional specific coverage for latent
+                faults (c_L). If None, standard ISO 26262 logic (1 - c_R) is assumed.
+            is_spfm (bool, optional): Indicates if this block processes the SPFM/residual
+                path. Defaults to True.
         """
         self.target_fault = target_fault
         self.is_spfm = is_spfm
-        is_lpddr5_mode = dc_rate_latent_cL is not None
-        if is_lpddr5_mode:
+        if dc_rate_latent_cL is not None:
             self.c_R = dc_rate_c_or_cR
             self.c_L = dc_rate_latent_cL
         else:
             self.c_R = dc_rate_c_or_cR
             self.c_L = 1.0 - dc_rate_c_or_cR
 
-    def compute_fit(self, spfm_rates: dict, lfm_rates: dict) -> tuple[dict, dict]:
-        """
-        Transforms the input fault rate dictionaries by applying diagnostic coverage logic.
+    def compute_fit(self, spfm_rates: dict[FaultType, float], lfm_rates: dict[FaultType, float]) -> tuple[dict[FaultType, float], dict[FaultType, float]]:
+        """Transforms the input fault rate dictionaries by applying diagnostic coverage logic.
 
-        @param spfm_rates Dictionary containing current SPFM/residual fault rates.
-        @param lfm_rates Dictionary containing current LFM/latent fault rates.
-        @return A tuple of updated (spfm_rates, lfm_rates) dictionaries.
+        Args:
+            spfm_rates (dict[FaultType, float]): Current residual failure rates.
+            lfm_rates (dict[FaultType, float]): Current latent failure rates.
+
+        Returns:
+            tuple[dict[FaultType, float], dict[FaultType, float]]: A tuple containing:
+                - Updated SPFM rates dictionary.
+                - Updated LFM rates dictionary.
         """
         new_spfm = spfm_rates.copy()
         new_lfm = lfm_rates.copy()
