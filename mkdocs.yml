@@ -1,3 +1,5 @@
+site_url: https://HENKI2004.github.io/Beachlore
+
 site_name: Beachlore Safety Docs
 theme:
   name: material
@@ -6,6 +8,7 @@ theme:
     accent: purple
   features:
     - navigation.tabs
+    - navigation.sections
     - content.code.copy
 
 plugins:
