@@ -48,8 +48,9 @@ class BUS_TRIM(Base):
             Basic_Event(FAULTS.AZ, self.spfm_AZ_Source, is_spfm=True)
         ])
 
-        self.root_block = Pipeline_Block(self.name, [
-            sources,
+        self.root_block = Sum_Block(self.name, [
+            Basic_Event(FAULTS.MBE, self.spfm_MBE_Source, is_spfm=True),
+            Basic_Event(FAULTS.AZ, self.spfm_AZ_Source, is_spfm=True),
             Split_Block("SPFM_SBE_Split", FAULTS.SBE, self.spfm_SBE_split, is_spfm=True),
             Split_Block("SPFM_DBE_Split", FAULTS.DBE, self.spfm_DBE_split, is_spfm=True),
             Split_Block("SPFM_TBE_Split", FAULTS.TBE, self.spfm_TBE_split, is_spfm=True),

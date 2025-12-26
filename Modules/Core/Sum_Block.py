@@ -36,18 +36,12 @@ class Sum_Block(Block_Interface):
         """
         total_spfm = spfm_rates.copy()
         total_lfm = lfm_rates.copy()
-
         for block in self.sub_blocks:
             res_spfm, res_lfm = block.compute_fit(spfm_rates, lfm_rates)
-            
             for fault in set(res_spfm.keys()) | set(spfm_rates.keys()):
                 delta = res_spfm.get(fault, 0.0) - spfm_rates.get(fault, 0.0)
-                if delta != 0: 
-                    total_spfm[fault] = total_spfm.get(fault, 0.0) + delta
-
+                if delta != 0: total_spfm[fault] = total_spfm.get(fault, 0.0) + delta
             for fault in set(res_lfm.keys()) | set(lfm_rates.keys()):
                 delta = res_lfm.get(fault, 0.0) - lfm_rates.get(fault, 0.0)
-                if delta != 0: 
-                    total_lfm[fault] = total_lfm.get(fault, 0.0) + delta
-                    
+                if delta != 0: total_lfm[fault] = total_lfm.get(fault, 0.0) + delta
         return total_spfm, total_lfm

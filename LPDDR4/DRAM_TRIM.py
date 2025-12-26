@@ -8,7 +8,7 @@
 #  @copyright Copyright (c) 2025 Linus Held. All rights reserved.
 # 
 
-from Modules.Core import Base, Pipeline_Block, Split_Block
+from Modules.Core import Base, Sum_Block, Split_Block
 from Modules.Interfaces import FAULTS
 
 class DRAM_TRIM(Base):
@@ -37,7 +37,7 @@ class DRAM_TRIM(Base):
         Configures the root block as a pipeline of sequential split operations.
         Each split block redistributes the specified fault type according to the defined ratios.
         """
-        self.root_block = Pipeline_Block(self.name, [
+        self.root_block = Sum_Block(self.name, [
             Split_Block("SPFM_SBE_Split", FAULTS.SBE, self.spfm_SBE_split, is_spfm=True),
             Split_Block("SPFM_DBE_Split", FAULTS.DBE, self.spfm_DBE_split, is_spfm=True),
             Split_Block("SPFM_TBE_Split", FAULTS.TBE, self.spfm_TBE_split, is_spfm=True),

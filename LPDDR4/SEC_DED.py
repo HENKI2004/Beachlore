@@ -45,12 +45,8 @@ class SEC_DED(Base):
         This ensures that local sources are added before transformations occur, 
         and all rates are finally filtered by the coverage blocks.
         """
-        local_sources = Sum_Block("Local_Latent_Sources", [
-            Basic_Event(FAULTS.SDB, self.SDB_SOURCE, is_spfm=False)
-        ])
-
-        self.root_block = Pipeline_Block(self.name, [
-            local_sources,
+        self.root_block = Sum_Block(self.name, [
+            Basic_Event(FAULTS.SDB, self.SDB_SOURCE, is_spfm=False),
             
             Coverage_Block(FAULTS.SBE, self.LFM_SBE_DC, is_spfm=False),
             Coverage_Block(FAULTS.DBE, self.LFM_DBE_DC, is_spfm=False),

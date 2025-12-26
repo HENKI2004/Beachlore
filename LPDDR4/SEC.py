@@ -38,12 +38,9 @@ class SEC(Base):
         This ensures fault sources are injected first, followed by coverage application 
         and final rate redistribution.
         """
-        local_sources = Sum_Block("Local_Latent_Sources", [
+        self.root_block = Sum_Block(self.name, [
             Basic_Event(FAULTS.SB, self.SB_SOURCE, is_spfm=False),
-            Basic_Event(FAULTS.DBE, self.DBE_SOURCE, is_spfm=False)
-        ])
-        self.root_block = Pipeline_Block(self.name, [
-            local_sources,
+            Basic_Event(FAULTS.DBE, self.DBE_SOURCE, is_spfm=False),
             Coverage_Block(FAULTS.SBE, self.SEC_ECC_DC),
             Split_Block(
                 "DBE_to_TBE_Split", 

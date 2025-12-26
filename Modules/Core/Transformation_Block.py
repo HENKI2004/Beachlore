@@ -37,9 +37,8 @@ class Transformation_Block(Block_Interface):
         @return A tuple of updated (spfm_rates, lfm_rates) dictionaries.
         """
         new_spfm = spfm_rates.copy()
-        
         if self.source in new_spfm:
             transfer_rate = new_spfm[self.source] * self.factor
-            new_spfm[self.target] = new_spfm.get(self.target, 0.0) + transfer_rate  
+            new_spfm[self.target] = new_spfm.get(self.target, 0.0) + transfer_rate 
 
         return new_spfm, lfm_rates.copy()
