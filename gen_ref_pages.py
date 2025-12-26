@@ -9,6 +9,8 @@ nav = mkdocs_gen_files.Nav()
 for path in sorted(Path("src").rglob("*.py")):
     module_path = path.relative_to("src").with_suffix("")
     doc_path = path.relative_to("src").with_suffix(".md")
+
+    # Der physische Speicherort im virtuellen docs-Ordner
     full_doc_path = Path("reference", doc_path)
 
     parts = list(module_path.parts)
@@ -19,8 +21,12 @@ for path in sorted(Path("src").rglob("*.py")):
         full_doc_path = full_doc_path.with_name("index.md")
     elif parts[-1] == "__main__":
         continue
-    nav_parts = ["API Reference"] + list(parts)
-    nav[tuple(nav_parts)] = doc_path.as_posix()
+
+    if not parts:
+        continue
+
+    nav_link = Path("reference", doc_path).as_posix()
+    nav[tuple(parts)] = nav_link
 
     with mkdocs_gen_files.open(full_doc_path, "w") as fd:
         ident = ".".join(parts)
