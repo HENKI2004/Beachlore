@@ -192,7 +192,7 @@ class SafetyVisualizer(SafetyObserver):
         elif isinstance(block, Pipeline_Block):
             return self._draw_pipeline_block(block, input_ports, spfm_in, lfm_in,container)
         elif isinstance(block, Sum_Block):
-            return self._draw_sum_block(block, input_ports, spfm_out, lfm_out,container,predecessors)
+            return self._draw_sum_block(block, input_ports,spfm_in, lfm_in ,spfm_out, lfm_out,container,predecessors)
         elif isinstance(block, Transformation_Block):
             return self._draw_transformation_block(block, input_ports, spfm_out, lfm_out,container)
         elif isinstance(block, Base):
@@ -578,7 +578,7 @@ class SafetyVisualizer(SafetyObserver):
 
         return current_ports
 
-    def _draw_sum_block(self, block, input_ports, spfm_out, lfm_out,container,predecessors= None) -> dict:
+    def _draw_sum_block(self, block, input_ports,spfm_in, lfm_in,spfm_out, lfm_out,container,predecessors= None) -> dict:
         """
         Draws a parallel aggregation block. It creates a dotted cluster to group
         sub-blocks, ensures children are aligned horizontally, and places '+' 
@@ -608,8 +608,14 @@ class SafetyVisualizer(SafetyObserver):
                 # rank=same bleibt aus, damit Layout flexibel ist
                 
                 for sub_block in block.sub_blocks:
+
+                    child_spfm, child_lfm = sub_block.compute_fit(spfm_in, lfm_in)
+
                     child_res = self.on_block_computed(
-                        sub_block, input_ports, spfm_out, lfm_out, spfm_out, lfm_out, logic_rank, predecessors=predecessors
+                        sub_block, input_ports, 
+                        spfm_in, lfm_in,       
+                        child_spfm, child_lfm,  
+                        logic_rank, predecessors=predecessors
                     )
                     
                     # Prüfen, ob der Block ein "Verarbeiter" ist (der den Input modifiziert/ersetzt)
