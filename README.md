@@ -85,7 +85,7 @@ The project follows the **Observer Pattern** to decouple calculation from visual
 ## Contributing
 1. Install dependencies: `pip install -e .[dev]`
 
-2. Format code: `cruff format .`
+2. Format code: `ruff format .`
 
 3. Run checks: `ruff check .`
 
