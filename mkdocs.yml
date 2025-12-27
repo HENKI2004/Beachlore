@@ -1,6 +1,6 @@
-site_url: https://HENKI2004.github.io/Beachlore
+site_url: https://HENKI2004.github.io/iso26262-ecc-analyzer
 
-site_name: Beachlore Safety Docs
+site_name: ISO 26262 ECC Analyzer
 theme:
   name: material
   palette:
