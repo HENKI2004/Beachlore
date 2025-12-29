@@ -5,6 +5,7 @@
 from .asil_block import AsilBlock
 from .base import Base
 from .basic_event import BasicEvent
+from .block_factory import BlockFactory
 from .coverage_block import CoverageBlock
 from .observable_block import ObservableBlock
 from .pipeline_block import PipelineBlock
@@ -22,4 +23,5 @@ __all__ = [
     "SplitBlock",
     "SumBlock",
     "TransformationBlock",
+    "BlockFactory",
 ]

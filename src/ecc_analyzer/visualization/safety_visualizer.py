@@ -681,7 +681,7 @@ class SafetyVisualizer(SafetyObserver):
                 fontcolor=self.COLOR_TEXT_SECONDARY,
             )
 
-            for sub_block in block.blocks:
+            for sub_block in block.sub_blocks:
                 anchors = []
                 for p_dict in current_ports.values():
                     if p_dict.get(self.PATH_TYPE_RF):
