@@ -51,3 +51,13 @@ class SumBlock(BlockInterface):
                 if delta != 0:
                     total_lfm[fault] = total_lfm.get(fault, 0.0) + delta
         return total_spfm, total_lfm
+
+    def to_dict(self):
+        """Serializes the SumBlock into a dictionary for configuration export.
+
+        Returns:
+            dict: A dictionary containing the block type and all parameters
+                needed to reconstruct this SumBlock via the BlockFactory.
+        """
+
+        return {"type": "SumBlock", "name": self.name, "sub_blocks": [block.to_dict() for block in self.sub_blocks]}

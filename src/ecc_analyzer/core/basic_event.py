@@ -43,3 +43,13 @@ class BasicEvent(BlockInterface):
         target_dict[self.fault_type] = target_dict.get(self.fault_type, 0.0) + self.lambda_BE
 
         return new_spfm, new_lfm
+
+    def to_dict(self) -> dict:
+        """Serializes the BasicEvent into a dictionary for configuration export.
+
+        Returns:
+            dict: A dictionary containing the block type and all parameters
+                needed to reconstruct this BasicEvent via the BlockFactory.
+        """
+
+        return {"type": "BasicEvent", "fault_type": self.fault_type.name, "rate": self.lambda_BE, "is_spfm": self.is_spfm}

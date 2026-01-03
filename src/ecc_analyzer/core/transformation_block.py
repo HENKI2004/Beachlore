@@ -42,3 +42,12 @@ class TransformationBlock(BlockInterface):
             new_spfm[self.target] = new_spfm.get(self.target, 0.0) + transfer_rate
 
         return new_spfm, lfm_rates.copy()
+
+    def to_dict(self) -> dict:
+        """Serializes the TransformationBlock into a dictionary for configuration export.
+
+        Returns:
+            dict: A dictionary containing the block type and all parameters
+                needed to reconstruct this TransformationBlock via the BlockFactory.
+        """
+        return {"type": "TransformationBlock", "source_fault": self.source.name, "target_fault": self.target.name, "factor": self.factor}

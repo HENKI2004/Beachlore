@@ -73,3 +73,13 @@ class CoverageBlock(BlockInterface):
                     new_lfm[self.target_fault] = lambda_rem
 
         return new_spfm, new_lfm
+
+    def to_dict(self):
+        """Serializes the CoverageBlock into a dictionary for configuration export.
+
+        Returns:
+            dict: A dictionary containing the block type and all parameters
+                needed to reconstruct this CoverageBlock via the BlockFactory.
+        """
+
+        return {"type": "CoverageBlock", "target_fault": self.target_fault.name, "dc_rate_c_or_cR": self.c_R, "dc_rate_latent_cL": self.c_L, "is_spfm": self.is_spfm}
