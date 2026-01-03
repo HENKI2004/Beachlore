@@ -65,3 +65,19 @@ class SplitBlock(BlockInterface):
                 target_dict[target_fault] = target_dict.get(target_fault, 0.0) + split_rate
 
         return new_spfm, new_lfm
+
+    def to_dict(self):
+        """Serializes the SplitBlock into a dictionary for configuration export.
+
+        Returns:
+            dict: A dictionary containing the block type and all parameters
+                needed to reconstruct this SplitBlock via the BlockFactory.
+        """
+
+        return {
+            "type": "SplitBlock",
+            "name": self.name,
+            "fault_to_split": self.fault_to_split.name,
+            "distribution_rates": {fault.name: rate for fault, rate in self.distribution_rates.items()},
+            "is_spfm": self.is_spfm,
+        }

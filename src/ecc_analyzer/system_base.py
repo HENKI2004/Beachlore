@@ -2,10 +2,13 @@
 
 # Copyright (c) 2025 Linus Held. All rights reserved.
 
+import json
 from abc import ABC, abstractmethod
 from typing import Any, Optional
 
-from .core import AsilBlock, ObservableBlock
+import yaml
+
+from .core import AsilBlock, BlockFactory, ObservableBlock
 from .visualization import SafetyVisualizer
 
 
@@ -75,7 +78,7 @@ class SystemBase(ABC):
         observable_layout = ObservableBlock(self.system_layout)
         observable_layout.attach(visualizer)
 
-        final_spfm, final_lfm, last_ports = observable_layout.run({}, {}, {})
+        final_spfm, final_lfm, last_ports = observable_layout.compute_fit({}, {}, {})
 
         visualizer.on_block_computed(
             self.asil_block,
@@ -89,3 +92,43 @@ class SystemBase(ABC):
         visualizer.render(filename)
 
         return self.asil_block.compute_metrics(self.total_fit, final_spfm, final_lfm)
+
+    def save_to_yaml(self, file_path: str):
+        """Exports the current system layout to a YAML file.
+
+        Args:
+            file_path (str): The destination path for the YAML file.
+        """
+        config = self.system_layout.to_dict()
+        with open(file_path, "w") as f:
+            yaml.dump(config, f, default_flow_style=False)
+
+    def load_from_yaml(self, file_path: str):
+        """Loads a system layout from a YAML file and reconstructs the block tree.
+
+        Args:
+            file_path (str): The path to the configuration file.
+        """
+        with open(file_path, "r") as f:
+            data = yaml.safe_load(f)
+        self.system_layout = BlockFactory.from_dict(data)
+
+    def save_to_json(self, file_path: str):
+        """Exports the current system layout to a JSON file.
+
+        Args:
+            file_path (str): The destination path for the JSON file.
+        """
+        config = self.system_layout.to_dict()
+        with open(file_path, "w") as f:
+            json.dump(config, f, indent=4)
+
+    def load_from_json(self, file_path: str):
+        """Loads a system layout from a JSON file and reconstructs the block tree.
+
+        Args:
+            file_path (str): The path to the configuration file.
+        """
+        with open(file_path, "r") as f:
+            data = json.load(f)
+        self.system_layout = BlockFactory.from_dict(data)

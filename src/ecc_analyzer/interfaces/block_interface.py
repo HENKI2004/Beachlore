@@ -30,3 +30,13 @@ class BlockInterface(ABC):
                 - Updated LFM rates dictionary.
         """
         pass
+
+    @abstractmethod
+    def to_dict(self) -> dict:
+        """
+        crates a suitable dictionary for the block
+
+        Returns:
+            dict: the created dictionary which represents the block
+        """
+        pass

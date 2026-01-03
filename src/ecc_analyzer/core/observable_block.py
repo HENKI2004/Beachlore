@@ -30,7 +30,16 @@ class ObservableBlock(ObservableInterface):
         if observer not in self._observers:
             self._observers.append(observer)
 
-    def run(
+    def detach(self, observer: SafetyObserver):
+        """Unregisters an observer.
+
+        Args:
+            observer (SafetyObserver): The SafetyObserver instance to be unregistered.
+        """
+        if observer in self._observers:
+            self._observers.remove(observer)
+
+    def compute_fit(
         self,
         spfm_in: dict[FaultType, float],
         lfm_in: dict[FaultType, float],
