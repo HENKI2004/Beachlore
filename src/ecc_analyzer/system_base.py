@@ -78,7 +78,7 @@ class SystemBase(ABC):
         observable_layout = ObservableBlock(self.system_layout)
         observable_layout.attach(visualizer)
 
-        final_spfm, final_lfm, last_ports = observable_layout.run({}, {}, {})
+        final_spfm, final_lfm, last_ports = observable_layout.compute_fit({}, {}, {})
 
         visualizer.on_block_computed(
             self.asil_block,

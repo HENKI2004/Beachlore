@@ -52,3 +52,7 @@ class Base(BlockInterface, ABC):
             return spfm_rates.copy(), lfm_rates.copy()
 
         return self.root_block.compute_fit(spfm_rates, lfm_rates)
+
+    def to_dict(self) -> dict:
+        """Serializes the component by delegating to its internal root block."""
+        return {"type": self.__class__.__name__, "name": self.name, "root_block": self.root_block.to_dict() if self.root_block else None}
